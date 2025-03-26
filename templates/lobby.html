@@ -1,6 +1,7 @@
 <html>
     <head>
         <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>    <!-- Load the socketIO installation to use in our JS -->
+        <link rel="stylesheet" href="static/lobby.css">
     </head>
 
 
@@ -10,10 +11,8 @@
             </br>
             User {{userNum}}
         </h1>
-
-        <div>
-            Game Div!
-        </div>
+        
+        <div id="gameboard"></div>
     </body>
     <script src="static/lobby.js"></script>
 </html>
