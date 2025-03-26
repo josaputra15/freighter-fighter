@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request
-from flask_socketio import SocketIO, emit, join_room
+from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
 
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
 
-# TODO: figure out how to manage people disconnecting/reconnecting
+# TODO: figure out how to manage people reconnecting
     # maybe use sessions - which requires a secret key
 
 # TODO: make an error handler for some of the big errors - 503, 404
@@ -39,27 +39,33 @@ def handleExists(lobbyNumber):
 
 # socket for managing response to clients connecting to the socket
 @socketio.on('connect')
-def connect():
+def handleConnect():
     print('connected')
-    # TODO: differentiate between connections in index and connections in lobby. check pathname
 
 
 # socket for managing response to clients leaving the socket
 @socketio.on('disconnect')
-def disconnect():
-    #TODO: check if they're in a room and remove them from it if so
-    print('disconnected')
+def handleDisconnect():
+    roomDetails = rooms()       # check what rooms the socket that sent the message is in
+    if len(roomDetails) > 1:        # if it's in a room, that will be the second argument
+        roomName = roomDetails[1]
+        lobbyMembership[roomName] -= 1  # lower our server-side memory
+        leave_room(roomName)            # remove socket from room
+        print("disconnected from lobby", roomName)
+
+    else:
+        print("disconnected from index")
+
 
 # manage connections to a specific lobby
 @socketio.on('join')
-def join(lobby):
+def handleJoin(lobby):
     print("responding to a join message from lobby", lobby)
     # do another check to see if the lobby is full already
     if lobbyMembership[lobby] < 2:
         join_room(lobby)
         lobbyMembership[lobby] += 1
         emit('join', 1, to=lobby)
-        print(lobbyMembership[lobby])
     else:
         emit('join', 0)
 

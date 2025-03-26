@@ -12,7 +12,7 @@ for (let i=0; i < lobbies.length; i++) {
     })
 }
 
-
+// responds to a exists message, which changes you to that page if it's available
 socket.on('exists', (num, available) => {
     // if the room is available, connect to that room
     if(available === 1) {
