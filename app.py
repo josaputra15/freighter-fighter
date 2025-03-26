@@ -39,7 +39,7 @@ def handleExists(lobbyNumber):
 
 # socket for managing response to clients connecting to the socket
 @socketio.on('connect')
-def handleConnect():
+def handleConnect(auth):
     print('connected')
 
 
@@ -47,13 +47,14 @@ def handleConnect():
 @socketio.on('disconnect')
 def handleDisconnect():
     roomDetails = rooms()       # check what rooms the socket that sent the message is in
-    if len(roomDetails) > 1:        # if it's in a room, that will be the second argument
-        roomName = roomDetails[1]
-        lobbyMembership[roomName] -= 1  # lower our server-side memory
-        leave_room(roomName)            # remove socket from room
-        print("disconnected from lobby", roomName)
+    for roomName in roomDetails:
+        if roomName in lobbyMembership.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
+            print("trying to disconnect from ", roomName)
+            lobbyMembership[roomName] -= 1  # lower our server-side memory
+            leave_room(roomName)            # remove socket from room
+            print("disconnected from", roomName)
 
-    else:
+    if len(roomDetails) == 1:
         print("disconnected from index")
 
 
