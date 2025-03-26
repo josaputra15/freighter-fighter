@@ -16,7 +16,6 @@ for (let i=0; i < lobbies.length; i++) {
 socket.on('exists', (num, available) => {
     // if the room is available, connect to that room
     if(available === 1) {
-        socket.emit('join', num);
         window.location = window.location + num;
     }
     else {
