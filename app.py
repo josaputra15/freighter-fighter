@@ -9,11 +9,22 @@ socketio = SocketIO(app) # wrap socketio installation into new name - maybe make
 
 # TODO: make an error handler for some of the big errors - 503, 404
 
+def fillLobbyDetails(lobbyName):
+    lobbyProperties = ["user1shipMap", "user2shipMap", "user1hitMap", "user2hitMap", "whoseTurn","winConTracking", "usersConnected"]
+    for property in lobbyProperties:
+        lobbiesData[lobbyName][property] = "here's the example data for this property"
+
+    # in the short-term, make sure that each room is initialized to have 0 connected users
+    lobbiesData[lobbyName]["usersConnected"] = 0
+
+    print(lobbiesData[lobbyName])
+
 # Create the storage for each 
-lobbyMembership = {}
+lobbiesData = {}
 for i in range(4):
-    lobbyMembership[i] = 0
-    print(lobbyMembership[i])
+    lobbiesData[i] = {}
+    fillLobbyDetails(i)
+
 
 
 # serve our index.html page when you go to the root page
@@ -31,7 +42,7 @@ def lobby(lobby):
 # socket for checking if a room is full
 @socketio.on('exists')
 def handleExists(lobbyNumber):
-    if(lobbyMembership[lobbyNumber] < 2):
+    if(lobbiesData[lobbyNumber]["usersConnected"] < 2):
         emit('exists', (lobbyNumber, 1)) # send a message back with true in the exists slot
     else:
         emit('exists', (lobbyNumber, 0)) # send a message back with false in the exists slot
@@ -48,9 +59,9 @@ def handleConnect(auth):
 def handleDisconnect():
     roomDetails = rooms()       # check what rooms the socket that sent the message is in
     for roomName in roomDetails:
-        if roomName in lobbyMembership.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
+        if roomName in lobbiesData.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
             print("trying to disconnect from ", roomName)
-            lobbyMembership[roomName] -= 1  # lower our server-side memory
+            lobbiesData[roomName]["usersConnected"] -= 1  # lower our server-side memory
             leave_room(roomName)            # remove socket from room
             print("disconnected from", roomName)
 
@@ -63,9 +74,9 @@ def handleDisconnect():
 def handleJoin(lobby):
     print("responding to a join message from lobby", lobby)
     # do another check to see if the lobby is full already
-    if lobbyMembership[lobby] < 2:
+    if lobbiesData[lobby]["usersConnected"] < 2:
         join_room(lobby)
-        lobbyMembership[lobby] += 1
+        lobbiesData[lobby]["usersConnected"] += 1
         emit('join', 1, to=lobby)
     else:
         emit('join', 0)
