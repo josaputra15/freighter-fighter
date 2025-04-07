@@ -8,9 +8,12 @@ dict with lobby properties and associated values
 
 ## Ship Map
 2d array
-- O's in empty spaces
-- some symbol representing a particular ship for any tile that ship is in
-    - these symbols are different per ship - ship1 symbol != ship2 symbol
+- 0's in empty spaces
+- number for each ship:
+    - 2-long is 1
+    - 3-longs are 2 and 3
+    - 4-long is 4
+    - 5-long is 5
 
 
 ## Guess/Hit Map
