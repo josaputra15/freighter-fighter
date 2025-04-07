@@ -17,11 +17,18 @@ socket.on("join", (success) => {
 })
 
 
-for(let i = 0; i < 9; i++) {
+for(let i = 0; i < 100; i++) {
     let tile = document.createElement("div");
     tile.innerText = "tile";
     tile.className = "tile";
-    document.getElementById("gameboard").appendChild(tile);
+document.getElementById("selfMap").appendChild(tile);
+}
+
+for(let i = 0; i < 100; i++) {
+    let tile = document.createElement("div");
+    tile.innerText = "tile";
+    tile.className = "tile";
+    document.getElementById("opponentMap").appendChild(tile);
 }
 
 ///////////////////////////////////////////////////////

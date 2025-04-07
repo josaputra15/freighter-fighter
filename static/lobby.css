@@ -1,12 +1,18 @@
 .tile {
     background-color: lightgray;
-    outline:1px black;
-    padding:10px;
+    padding:20px;
 }
 
 #gameboard {
+    display:grid;
+    gap:10px;
+    grid-template-columns: repeat(2, 50%);
+    grid-template-rows:2;
+}
+
+#selfMap, #opponentMap {
     display: grid;
     gap: 2px;
-    grid-template-columns: repeat(3, 200px);
-    grid-template-rows: repeat(3, 200px)
+    grid-template-columns: repeat(10, 8%);
+    grid-template-rows: repeat(10, 8%)
 }
