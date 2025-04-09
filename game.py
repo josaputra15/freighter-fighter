@@ -1,19 +1,4 @@
-# 2 players, each with a Board. Each Board has two 2d arrays - shipmap, and a hitmap.
-# The shipmap shows where their ships are (each square has a pointer to a Ship)
-# There's a set number of Ships (5) that will have been placed.
-# Each ship has an hp#size.
-# Hit a ship, and its hp goes down. HP hits 0, and the number of ships left goes down. That goes to 0, you lose.
-
-# Objects: Player, GameState, Ship, Board
-# Player: shipsLeft, MAX_SHIPS, Board
-# Board: shipMap (of Ships), hitMap (where YOU have BEEN ATTACKED), array of ships
-# Ship: timesHit, hp
-# GameState: 2 Players
-# TODO: These should probably be in separate files, but I'll figure out how to do that later.
-
 '''
-That's all NERD stuff, we're doing PYTHON on the SERVER like GAMERS
-
 2 players, each with a JavaScript renderer (aka web browser, but shush).
 They each pass this file a JSON object that represents ship_map.
 (For testing, ship_map is hard-coded.)
