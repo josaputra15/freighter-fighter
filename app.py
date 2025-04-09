@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
+from game import ship_game
 
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
@@ -77,7 +78,11 @@ def handleJoin(lobby):
     if lobbiesData[lobby]["usersConnected"] < 2:
         join_room(lobby)
         lobbiesData[lobby]["usersConnected"] += 1
-        emit('join', 1, to=lobby)
+        # The number of users connected also serves as the client's ID
+        emit('join', (1, lobbiesData[lobby]["usersConnected"]), to=lobby)
+        if lobbiesData[lobby]["usersConnected"] == 2:
+            emit('fullLobby', broadcast=True)
+            ship_game(socketio)
     else:
         emit('join', 0)
 
