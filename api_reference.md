@@ -18,7 +18,7 @@ dict with lobby properties and associated values
 
 ## Guess/Hit Map
 2d array
-- 0 in empty spaces
+- 0 in unguessed spaces
 - 97 in missed guesses
 - 98 in hits
 - 99 in destroyed slots
@@ -32,3 +32,7 @@ dict with lobby properties and associated values
     - in response, the server updates its guessMaps (by checking the move against its shipMaps)
         - and then it responds to the original one with a rerender, and a "notYourTurn" 
         - and then it responds to the opponent with a rerender, and a "yourTurn" signal
+
+## rerender
+- from lobby to users:
+- contains mapJson, what type of map it is ("ship" or "hit"), and the id of the user who owns that map (1 or 2)

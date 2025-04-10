@@ -91,6 +91,7 @@ def ship_game(socketio):
     # turn and the other to wait.
     @socketio.on('send_initial_maps')
     def handleInitialMaps(json_id_and_map):
+        # TODO: Stop this from running twice. Maybe wait to emit until we have both
         id_and_map = json.loads(json_id_and_map)
         if id_and_map[0] == 1: # Player 1's map
             p1.setup_ship_map(id_and_map[1])
@@ -99,3 +100,36 @@ def ship_game(socketio):
         # Both hit maps are empty, so I arbitrarily emit p1's map to both players.
         emit('rerender', json.dumps(p1.hit_map))
         # TODO: Tell someone that it's their move
+        print("p1 ship map is")
+        print(p1.ship_map)
+        print("p2 ship map is")
+        print(p2.ship_map)
+    
+
+    """
+    Responds to guesses. The return value is the array version of a map that the client will use to rerender.
+    """
+    @socketio.on("guess")
+    def handleGuess(id, coords):
+        #TODO: This is where we would check for a ship to be destroyed, and send a destroyed symbol if so
+
+        # if its user 1, check user 2's ship map for something, then update accordingly
+        if id == 1:
+            print("got into id1")
+            if p2.ship_map[coords] != 0:
+                p1.hit_map[coords] = 98
+            else:
+                p1.hit_map[coords] = 97
+            return p1.hit_map
+        # if its user 2, check user 1's ship map for something, then update accordingly
+        elif id == 2:
+            print("got into id2")
+            if p1.ship_map[coords] != 0:
+                p2.hit_map[coords] = 98
+            else:
+                p2.hit_map[coords] = 97
+            return p2.hit_map
+        # if the id is fucked, everything is broken
+        else:
+            return "BROKEN BROKEN BROKEN BROKEN"
+        

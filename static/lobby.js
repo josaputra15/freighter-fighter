@@ -1,6 +1,6 @@
 
 
-///////////////// Communication with the server /////////////////
+///////////////// GLOBALS /////////////////
 var mainShipMap = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -32,6 +32,8 @@ var socket = io();
 var lobby = window.location.pathname;
 var id;
 const assetLoc = "static/assets/";
+
+///////////////// Joining logic /////////////////
 
 socket.emit("join", Number(lobby[1]));
 
@@ -109,7 +111,6 @@ socket.on("rerender", (jsonHitMap) =>{
 function createTile() {
     let tile = document.createElement("div");
     tile.className = "tile";
-    tile.classList.add("empty")
 
     let tileContent = document.createElement("img");
     tileContent.className = "tileContent";
@@ -172,6 +173,9 @@ function rerender(arrayMap, mapElement) {
                 tileContent.src = assetLoc + "destroyed.svg";
                 tileContent.alt = "destroyed tile"
                 break;
+            default:
+                tileContent.src = assetLoc + "error.svg";
+                tileContent.alt = "error";
         }
     }
 }
@@ -180,11 +184,24 @@ function rerender(arrayMap, mapElement) {
 // generate selfMap
 for(let i = 0; i < 100; i++) {
     let tile = createTile();
+    tile.classList.add("inactive");
     document.getElementById("selfMap").appendChild(tile);
 }
 
 // generate opponentMap
 for(let i = 0; i < 100; i++) {
     let tile = createTile();
+    tile.addEventListener("click", () => {
+        // TODO: check whether its your turn to guess
+        tile.classList.add("inactive");
+
+        // emit a guess request with id & slot
+        // the callback to this request is a new map which we rerender onto opponentMap
+        socket.emit("guess", id, i, (newMap) => {
+            rerender(newMap, "opponentMap");
+        });
+        // send a guess to the server
+            // the server will check the guess against the opponent's ship map, and then send a rerender for opponentMap
+    })
     document.getElementById("opponentMap").appendChild(tile);
 }
