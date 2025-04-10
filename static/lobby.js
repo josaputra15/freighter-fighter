@@ -1,47 +1,36 @@
-///////////////// Game logic /////////////////
-// id: Ship ID (1-5) - an int so that we can easily send ship maps via json
-// hp: Size of the ship (eg, a 5-length ship has 5 hp)
-// timesHit: Number of ship tiles (for this ship) that have been hit
-class Ship{
-    constructor(id, hp, timesHit){
-        this.id = id;
-        this.hp = hp;
-        this.timesHit = timesHit;
-    }
-}
-
-class Player{
-    constructor(id){
-        this.id = id;
-        this.ship_map = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 4, 4, 4, 4, 0,
-            0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
-            0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
-            0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            5, 5, 5, 5, 5, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        ];
-    }
-
-    // Send finished ship maps to the server. This'll allow the user to set maps up
-    // later on, but for now, there's a predefined map.
-    sendInitialShipMaps(){
-        // https://socket.io/docs/v4/emitting-events/
-        socket.emit("send_initial_maps", JSON.stringify([this.id, this.ship_map]));
-    }
-}
-
 
 
 ///////////////// Communication with the server /////////////////
+var mainShipMap = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+];
+
+
+const debugShipMap = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 4, 4, 4, 4, 0,
+    0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
+    0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
+    0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    5, 5, 5, 5, 5, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
 
 var socket = io();
 var lobby = window.location.pathname;
-var me;
+var id;
 const assetLoc = "static/assets/";
 
 socket.emit("join", Number(lobby[1]));
@@ -50,7 +39,7 @@ socket.on("join", (success, usersConnected) => {
     if(success === 1) {
         // you have joined the room, start to check for whether the other person is in, then place ships, then run game
         console.log("heard back from join with success: " + success + "\n ID = " + usersConnected);
-        me = new Player(usersConnected);
+        id = usersConnected;
         alert("You successfully joined the room");
 
     }
@@ -61,18 +50,56 @@ socket.on("join", (success, usersConnected) => {
     }
 })
 
+
+/*
+    This function takes the values from our HTML element shipMap (called "selfMap" right now), parses them into an array, and then returns that array.
+    We will use it when the player clicks the ready button after placing their ships. For now, we don't use this, we just pass in dummy/debug arrays to
+    sendInitialShips instead.
+*/
+function parseIntoShipMap(){
+    // checks our array of tileContent elements and uses them to make a ship map
+    // return a 100-long array representing our ship map
+}
+
+/*
+    Send our initial ship map to the server, and override our current main ship map in this file with whatever that map is
+*/
+function sendInitialShipMap(newShipMap){
+    // https://socket.io/docs/v4/emitting-events/
+    console.log("ran initial function")
+    // TODO make this work
+ 
+    // form our new ship map from the placed ships currently on screen
+    // parseIntoShipMap()
+    // update our global shipMap var in lobby.js
+    // mainShipMap = newShipMap;
+    // send our new shipMap to python so it can associate it with the right id
+    socket.emit("send_initial_maps", JSON.stringify([id, debugShipMap]));
+}
+
+
 // Lobby is full; send the maps
 socket.on("fullLobby", () => {
-    me.sendInitialShipMaps();
+    sendInitialShipMap()
+
+    console.log("main ship map was this, right before we called selfMap version of rerender")
+    console.log(mainShipMap)
+    rerender(debugShipMap, "selfMap")
 });
 
 // Re-render is called when a player makes a move; it gives them the map of where their enemy
 // has attacked (jsonHitMap) and (will) call(s) a Player method that re-renders their boards.
 socket.on("rerender", (jsonHitMap) =>{
-    const DEBUG_decodedHitMap = JSON.parse(jsonHitMap);
-    console.log(DEBUG_decodedHitMap);
 
-    rerender(jsonHitMap, "selfMap");
+    // actual function
+    const unpackedMap = JSON.parse(jsonHitMap);
+    // console.log(unpackedMap);
+
+    // rerender our guess map (where we've guessed) with new information
+    rerender(unpackedMap, "opponentMap");
+    
+    // rerender our ship map (were our opponent has guessed + where our ships are) with new information
+    // TODO: figure this out
 });
 
 
@@ -97,30 +124,18 @@ function createTile() {
 /*
     Rerenders a particular element based on the given JSON. 
 */
-function rerender(jsonHitMap, mapElement) {
+function rerender(arrayMap, mapElement) {
 
-    // actual function
-    const unpackedMap = JSON.parse(jsonHitMap);
-
-    // DEBUG EXAMPLE MAP
-    // const unpackedMap = [
-    //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    //     0, 0, 0, 0, 0, 4, 4, 4, 4, 0,
-    //     0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
-    //     0, 0, 97, 0, 0, 0, 0, 0, 0, 0,
-    //     0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
-    //     0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
-    //     0, 0, 97, 0, 97, 0, 2, 0, 3, 0,
-    //     0, 0, 0, 0, 0, 0, 0, 0, 97, 0,
-    //     5, 5, 5, 5, 5, 0, 0, 0, 0, 0,
-    //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    // ]
+    console.log("given map element was " + mapElement)
     let tileList = document.getElementById(mapElement).children;
     
+    console.log("array map was")
+    console.log(arrayMap)
+
     for (let i = 0; i < 100; i++) {
         let tileContent = tileList[i].firstChild;
 
-        switch(unpackedMap[i]) {
+        switch(arrayMap[i]) {
             case 0:
                 tileContent.src = assetLoc + "empty.svg";
                 tileContent.alt = "empty"
