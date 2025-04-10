@@ -51,20 +51,6 @@ socket.on("join", (success, usersConnected) => {
         const me = new Player(usersConnected);
         alert("You successfully joined the room");
 
-        // Lobby is full; send the maps
-        socket.on("fullLobby", () => {
-            me.sendInitialShipMaps();
-        });
-
-        // Re-render is called when a player makes a move; it gives them the map of where their enemy
-        // has attacked (jsonHitMap) and (will) call(s) a Player method that re-renders their boards.
-        socket.on("rerender", (jsonHitMap) =>{
-            console.log("Initial setup would be complete, and re-render would be called on the empty json hit map");
-            // TODO: Make and call a functional rerender function
-            const DEBUG_decodedHitMap = JSON.parse(jsonHitMap);
-            console.log(DEBUG_decodedHitMap);
-        });
-
     }
     else {
         console.log("heard back from join with success: " + success);
@@ -73,17 +59,51 @@ socket.on("join", (success, usersConnected) => {
     }
 })
 
+// Lobby is full; send the maps
+socket.on("fullLobby", () => {
+    me.sendInitialShipMaps();
+});
 
-for(let i = 0; i < 100; i++) {
+// Re-render is called when a player makes a move; it gives them the map of where their enemy
+// has attacked (jsonHitMap) and (will) call(s) a Player method that re-renders their boards.
+socket.on("rerender", (jsonHitMap) =>{
+    console.log("Initial setup would be complete, and re-render would be called on the empty json hit map");
+    // TODO: Make and call a functional rerender function
+    const DEBUG_decodedHitMap = JSON.parse(jsonHitMap);
+    console.log(DEBUG_decodedHitMap);
+});
+
+// Function to generate tile divs
+function createTile() {
     let tile = document.createElement("div");
-    tile.innerText = "tile";
     tile.className = "tile";
-document.getElementById("selfMap").appendChild(tile);
+    tile.classList.add("empty")
+
+    let tileContent = document.createElement("img");
+    tileContent.className = "tileContent";
+    tileContent.src="static/assets/wave.svg";
+    tileContent.width="100";
+    tileContent.alt="empty";
+
+    tile.appendChild(tileContent);
+    return tile;
 }
 
+
+function rerender(responseJSON) {
+    // unpack it into the array
+    // go through the array and set tileContent for each tile to accurately match the data
+}
+
+
+// generate selfMap
 for(let i = 0; i < 100; i++) {
-    let tile = document.createElement("div");
-    tile.innerText = "tile";
-    tile.className = "tile";
+    let tile = createTile();
+    document.getElementById("selfMap").appendChild(tile);
+}
+
+// generate opponentMap
+for(let i = 0; i < 100; i++) {
+    let tile = createTile();
     document.getElementById("opponentMap").appendChild(tile);
 }
