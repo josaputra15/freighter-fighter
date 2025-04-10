@@ -18,10 +18,10 @@ dict with lobby properties and associated values
 
 ## Guess/Hit Map
 2d array
-- O's in empty spaces
-- X's in missed guesses
-- H's in hits
-- D's in destroyed slots
+- 0 in empty spaces
+- 97 in missed guesses
+- 98 in hits
+- 99 in destroyed slots
 
 
 # Functions

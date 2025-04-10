@@ -41,6 +41,8 @@ class Player{
 
 var socket = io();
 var lobby = window.location.pathname;
+var me;
+const assetLoc = "static/assets/";
 
 socket.emit("join", Number(lobby[1]));
 
@@ -48,7 +50,7 @@ socket.on("join", (success, usersConnected) => {
     if(success === 1) {
         // you have joined the room, start to check for whether the other person is in, then place ships, then run game
         console.log("heard back from join with success: " + success + "\n ID = " + usersConnected);
-        const me = new Player(usersConnected);
+        me = new Player(usersConnected);
         alert("You successfully joined the room");
 
     }
@@ -67,13 +69,16 @@ socket.on("fullLobby", () => {
 // Re-render is called when a player makes a move; it gives them the map of where their enemy
 // has attacked (jsonHitMap) and (will) call(s) a Player method that re-renders their boards.
 socket.on("rerender", (jsonHitMap) =>{
-    console.log("Initial setup would be complete, and re-render would be called on the empty json hit map");
-    // TODO: Make and call a functional rerender function
     const DEBUG_decodedHitMap = JSON.parse(jsonHitMap);
     console.log(DEBUG_decodedHitMap);
+
+    rerender(jsonHitMap, "selfMap");
 });
 
-// Function to generate tile divs
+
+/*
+    Creates a tile element, defaulting to having an empty space
+*/
 function createTile() {
     let tile = document.createElement("div");
     tile.className = "tile";
@@ -81,7 +86,7 @@ function createTile() {
 
     let tileContent = document.createElement("img");
     tileContent.className = "tileContent";
-    tileContent.src="static/assets/wave.svg";
+    tileContent.src="static/assets/empty.svg";
     tileContent.width="100";
     tileContent.alt="empty";
 
@@ -89,10 +94,71 @@ function createTile() {
     return tile;
 }
 
+/*
+    Rerenders a particular element based on the given JSON. 
+*/
+function rerender(jsonHitMap, mapElement) {
 
-function rerender(responseJSON) {
-    // unpack it into the array
-    // go through the array and set tileContent for each tile to accurately match the data
+    // actual function
+    const unpackedMap = JSON.parse(jsonHitMap);
+
+    // DEBUG EXAMPLE MAP
+    // const unpackedMap = [
+    //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    //     0, 0, 0, 0, 0, 4, 4, 4, 4, 0,
+    //     0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
+    //     0, 0, 97, 0, 0, 0, 0, 0, 0, 0,
+    //     0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
+    //     0, 0, 0, 0, 0, 0, 2, 0, 3, 0,
+    //     0, 0, 97, 0, 97, 0, 2, 0, 3, 0,
+    //     0, 0, 0, 0, 0, 0, 0, 0, 97, 0,
+    //     5, 5, 5, 5, 5, 0, 0, 0, 0, 0,
+    //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    // ]
+    let tileList = document.getElementById(mapElement).children;
+    
+    for (let i = 0; i < 100; i++) {
+        let tileContent = tileList[i].firstChild;
+
+        switch(unpackedMap[i]) {
+            case 0:
+                tileContent.src = assetLoc + "empty.svg";
+                tileContent.alt = "empty"
+                break;
+            case 1:
+                tileContent.src = assetLoc + "2long.svg";
+                tileContent.alt = "2 long ship piece"
+                break;
+            case 2:
+                tileContent.src = assetLoc + "3long.svg";
+                tileContent.alt = "3 long ship piece"
+                break;
+            case 3:
+                tileContent.src = assetLoc + "3long.svg";
+                tileContent.alt = "3 long ship piece"
+                break;
+            case 4:
+                tileContent.src = assetLoc + "4long.svg";
+                tileContent.alt = "4 long ship piece"
+                break;
+            case 5:
+                tileContent.src = assetLoc + "5long.svg";
+                tileContent.alt = "5 long ship piece"
+                break;
+            case 97:
+                tileContent.src = assetLoc + "miss.svg";
+                tileContent.alt = "miss"
+                break;
+            case 98:
+                tileContent.src = assetLoc + "hit.svg";
+                tileContent.alt = "hit"
+                break;
+            case 99:
+                tileContent.src = assetLoc + "destroyed.svg";
+                tileContent.alt = "destroyed tile"
+                break;
+        }
+    }
 }
 
 
