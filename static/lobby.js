@@ -29,19 +29,19 @@ const debugShipMap = [
 ]
 
 var socket = io();
-var lobby = window.location.pathname;
-var id;
-const assetLoc = "static/assets/";
+const LOBBY_NAME = Number(window.location.pathname[1]);
+var USER_ID;
+const ASSET_PATH = "static/assets/";
 
 ///////////////// Joining logic /////////////////
 
-socket.emit("join", Number(lobby[1]));
+socket.emit("join", LOBBY_NAME);
 
 socket.on("join", (success, usersConnected) => {
     if(success === 1) {
         // you have joined the room, start to check for whether the other person is in, then place ships, then run game
         console.log("heard back from join with success: " + success + "\n ID = " + usersConnected);
-        id = usersConnected;
+        USER_ID = usersConnected;
         alert("You successfully joined the room");
 
     }
@@ -76,7 +76,7 @@ function sendInitialShipMap(newShipMap){
     // update our global shipMap var in lobby.js
     // mainShipMap = newShipMap;
     // send our new shipMap to python so it can associate it with the right id
-    socket.emit("send_initial_maps", lobby, id, debugShipMap);
+    socket.emit("send_initial_maps", LOBBY_NAME, USER_ID, debugShipMap);
 }
 
 
@@ -138,43 +138,43 @@ function rerender(arrayMap, mapElement) {
 
         switch(arrayMap[i]) {
             case 0:
-                tileContent.src = assetLoc + "empty.svg";
+                tileContent.src = ASSET_PATH + "empty.svg";
                 tileContent.alt = "empty"
                 break;
             case 1:
-                tileContent.src = assetLoc + "2long.svg";
+                tileContent.src = ASSET_PATH + "2long.svg";
                 tileContent.alt = "2 long ship piece"
                 break;
             case 2:
-                tileContent.src = assetLoc + "3long.svg";
+                tileContent.src = ASSET_PATH + "3long.svg";
                 tileContent.alt = "3 long ship piece"
                 break;
             case 3:
-                tileContent.src = assetLoc + "3long.svg";
+                tileContent.src = ASSET_PATH + "3long.svg";
                 tileContent.alt = "3 long ship piece"
                 break;
             case 4:
-                tileContent.src = assetLoc + "4long.svg";
+                tileContent.src = ASSET_PATH + "4long.svg";
                 tileContent.alt = "4 long ship piece"
                 break;
             case 5:
-                tileContent.src = assetLoc + "5long.svg";
+                tileContent.src = ASSET_PATH + "5long.svg";
                 tileContent.alt = "5 long ship piece"
                 break;
             case 97:
-                tileContent.src = assetLoc + "miss.svg";
+                tileContent.src = ASSET_PATH + "miss.svg";
                 tileContent.alt = "miss"
                 break;
             case 98:
-                tileContent.src = assetLoc + "hit.svg";
+                tileContent.src = ASSET_PATH + "hit.svg";
                 tileContent.alt = "hit"
                 break;
             case 99:
-                tileContent.src = assetLoc + "destroyed.svg";
+                tileContent.src = ASSET_PATH + "destroyed.svg";
                 tileContent.alt = "destroyed tile"
                 break;
             default:
-                tileContent.src = assetLoc + "error.svg";
+                tileContent.src = ASSET_PATH + "error.svg";
                 tileContent.alt = "error";
         }
     }
@@ -197,7 +197,7 @@ for(let i = 0; i < 100; i++) {
 
         // emit a guess request with id & slot
         // the callback to this request is a new map which we rerender onto opponentMap
-        socket.emit("guess", id, i, (newMap) => {
+        socket.emit("guess", LOBBY_NAME, USER_ID, i, (newMap) => {
             rerender(newMap, "opponentMap");
         });
         // send a guess to the server
