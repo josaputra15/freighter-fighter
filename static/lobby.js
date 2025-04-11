@@ -127,59 +127,49 @@ function createTile() {
 */
 function rerender(arrayMap, mapElement) {
 
-    console.log("given map element was " + mapElement)
+    // console.log("given map element was " + mapElement)
     let tileList = document.getElementById(mapElement).children;
     
-    console.log("array map was")
-    console.log(arrayMap)
+    // console.log("array map was")
+    // console.log(arrayMap)
 
     for (let i = 0; i < 100; i++) {
         let tileContent = tileList[i].firstChild;
-
-        switch(arrayMap[i]) {
-            case 0:
-                tileContent.src = ASSET_PATH + "empty.svg";
-                tileContent.alt = "empty"
-                break;
-            case 1:
-                tileContent.src = ASSET_PATH + "2long.svg";
-                tileContent.alt = "2 long ship piece"
-                break;
-            case 2:
-                tileContent.src = ASSET_PATH + "3long.svg";
-                tileContent.alt = "3 long ship piece"
-                break;
-            case 3:
-                tileContent.src = ASSET_PATH + "3long.svg";
-                tileContent.alt = "3 long ship piece"
-                break;
-            case 4:
-                tileContent.src = ASSET_PATH + "4long.svg";
-                tileContent.alt = "4 long ship piece"
-                break;
-            case 5:
-                tileContent.src = ASSET_PATH + "5long.svg";
-                tileContent.alt = "5 long ship piece"
-                break;
-            case 97:
-                tileContent.src = ASSET_PATH + "miss.svg";
-                tileContent.alt = "miss"
-                break;
-            case 98:
-                tileContent.src = ASSET_PATH + "hit.svg";
-                tileContent.alt = "hit"
-                break;
-            case 99:
-                tileContent.src = ASSET_PATH + "destroyed.svg";
-                tileContent.alt = "destroyed tile"
-                break;
-            default:
-                tileContent.src = ASSET_PATH + "error.svg";
-                tileContent.alt = "error";
-        }
+        let assets = convertNumberToAssets(arrayMap[i])
+        tileContent.src = assets[0]
+        tileContent.alt = assets[1]
     }
 }
 
+/*
+    Converts a number into an svg-altText combination, using our number -> symbol rules from the API Reference
+
+    Returns: array where [0] is the svg src text, and [1] is the alt text
+*/
+function convertNumberToAssets(number) {
+    switch(number) {
+            case 0:
+            return [ASSET_PATH + "empty.svg", "empty"];
+            case 1:
+            return [ASSET_PATH + "2long.svg", "2 long ship piece"];
+            case 2:
+            return [ASSET_PATH + "3long.svg", "3 long ship piece"];
+            case 3:
+            return [ASSET_PATH + "3long.svg", "3 long ship piece"];
+            case 4:
+            return [ASSET_PATH + "4long.svg", "4 long ship piece"];
+            case 5:
+            return [ASSET_PATH + "5long.svg", "5 long ship piece"];
+            case 97:
+            return [ASSET_PATH + "miss.svg", "hit"];
+            case 98:
+            return [ASSET_PATH + "hit.svg", "hit"];
+            case 99:
+            return [ASSET_PATH + "destroyed.svg", "destroyed ship"];
+            default:
+            return [ASSET_PATH + "error.svg", "error"];
+    }
+}
 
 // generate selfMap
 for(let i = 0; i < 100; i++) {
