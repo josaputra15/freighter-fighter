@@ -76,7 +76,7 @@ function sendInitialShipMap(newShipMap){
     // update our global shipMap var in lobby.js
     // mainShipMap = newShipMap;
     // send our new shipMap to python so it can associate it with the right id
-    socket.emit("send_initial_maps", JSON.stringify([id, debugShipMap]));
+    socket.emit("send_initial_maps", lobby, id, debugShipMap);
 }
 
 

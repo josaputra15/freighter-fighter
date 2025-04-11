@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
-from game import ship_game
+import json
+import game
 
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
@@ -47,6 +48,10 @@ def lobby(lobby):
     return render_template("lobby.html", lobbyNum=lobby, userNum="example")
 
 
+# ===============================
+#       INDEX FUNCTIONS
+# ================================
+
 # socket for checking if a room is full
 @socketio.on('exists')
 def handleExists(lobbyNumber):
@@ -80,6 +85,10 @@ def handleDisconnect():
         print("disconnected from index")
 
 
+# ============================
+#   LOBBY FUNCTIONS
+# ============================
+
 # manage connections to a specific lobby
 @socketio.on('join')
 def handleJoin(lobby):
@@ -105,15 +114,59 @@ def handleJoin(lobby):
         # send a join success back to the request
         emit('join', (1, id))
 
+        print("after this join request, we have this many usersConnected:", lobbiesData[lobby]["usersConnected"])
         # if we're now full, send a fullLobby message to both clients in the lobby
         if lobbiesData[lobby]["usersConnected"] == 2:
             emit('fullLobby', to=lobby, broadcast=True)
 
-            # when we start our game, we pass it the room codes for both players, so that it can send messages to them specifically even when its not a callback
-            ship_game(socketio, lobbiesData[lobby]["user1RoomCode"], lobbiesData[lobby]["user2RoomCode"])
+            # when we start our game, we pass it the name of the lobby, 
+            # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
+            game.create_game(lobby, lobbiesData[lobby]["user1RoomCode"], lobbiesData[lobby]["user2RoomCode"])
     else:
         emit('join', (0, 0))
 
+
+# =============================
+#       GAME FUNCTIONS
+#   - the heavy lifting for all of these is in game.py
+#   - this is so that we're not passing copies of socketio
+#   - and so we can maintain only one listener per event
+#   - we MAY be able to just place these in game.py, but we'd need to find a way to comfortably pass socketio to that file
+# =============================
+
+"""
+Responds to each player submitting their map. Sets up the game's internal representation of their map
+"""
+@socketio.on('send_initial_maps')
+def handleInitialMaps(lobbyName, id, ship_map):
+    # call game.py's copy of this command
+    success = game.handleInitialMaps(lobbyName, id, ship_map)
+
+    # if that succeeded, run the code that responds to that
+    if success:
+        # send a copy of player 1's hit_map to both players
+        emit('rerender', json.dumps(game.getHitMap(lobbyName, id)), to=lobbyName)
+    else:
+        print("game.py failed to handle initial maps")
+    # TODO: Tell someone that it's their move
+
+"""
+Responds to guesses. The return value is the array version of a map that the client will use to rerender.
+"""
+@socketio.on("guess")
+def handleGuess(lobbyName, id, coords):
+    success = game.handleGuess(lobbyName, id, coords)
+
+    if success:
+        return game.getHitMap(lobbyName, id)
+    else:
+        print("game.py failed to handle guess")
+
+
+
+# ===========================
+#   Weird stuff to make this work in a way we never use
+# ===========================
 
 # run the server when you run this file
 if (__name__ == '__main__'):
