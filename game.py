@@ -17,7 +17,7 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
 import json
 
-def ship_game(socketio):
+def ship_game(socketio, user1RoomCode, user2RoomCode):
     ######################### Objects #########################
 
     class Ship():
@@ -42,8 +42,9 @@ def ship_game(socketio):
         send_initial_maps is what the user's JavaScript client emits once it's finished setup. It consists
         of a user ID and a ship_map.
         ''' 
-        def __init__(self, id):
+        def __init__(self, id, roomCode):
             self.id = id
+            self.roomCode = roomCode
             self.s1 = Ship(2)
             self.s2 = Ship(3)
             self.s3 = Ship(3)
@@ -82,8 +83,9 @@ def ship_game(socketio):
                 self.ship_map[i] = symbol_table[initial_map[i]]
 
 
-    p1 = Player(1)
-    p2 = Player(2)
+    # initialize both players with their associated id & the code associated with their individual room
+    p1 = Player(1, user1RoomCode)
+    p2 = Player(2, user2RoomCode)
     players = [p1, p2]
     ########## Server crap ##########
 
@@ -112,7 +114,8 @@ def ship_game(socketio):
     @socketio.on("guess")
     def handleGuess(id, coords):
         #TODO: This is where we would check for a ship to be destroyed, and send a destroyed symbol if so
-
+        print(p1.roomCode)
+        print(p2.roomCode)
         # if its user 1, check user 2's ship map for something, then update accordingly
         if id == 1:
             print("got into id1")
@@ -131,5 +134,5 @@ def ship_game(socketio):
             return p2.hit_map
         # if the id is fucked, everything is broken
         else:
-            return "BROKEN BROKEN BROKEN BROKEN"
+            raise Exception("In a guess, we received an ID that was neither 1 or 2")
         
