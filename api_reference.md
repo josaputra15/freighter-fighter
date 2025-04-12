@@ -35,4 +35,4 @@ dict with lobby properties and associated values
 
 ## rerender
 - from lobby to users:
-- contains mapJson, what type of map it is ("ship" or "hit"), and the id of the user who owns that map (1 or 2)
+- contains mapJson and what type of map it is ("ship" or "hit")

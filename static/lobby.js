@@ -64,6 +64,30 @@ function parseIntoShipMap(){
 }
 
 /*
+    Combines a hit map from our opponent with our ship map to properly show icons from both sources
+    
+    Returns a 100-long array that is this combination
+*/
+function combineHitAndShipMap(hitMap){
+    // using this to create an empty array: https://stackoverflow.com/a/45968309
+    let newMap = Array.from({length: 100})
+
+    for(let i = 0; i < 100; i++) {
+        // if the hit map doesn't have anything in that slot, default to our ship map's icon
+        console.log(hitMap[i]);
+        if(hitMap[i] === 0) {
+            console.log('used main');
+            newMap[i] = mainShipMap[i]
+        }
+        // otherwise use the thing from the hit map
+        else {
+            newMap[i] = hitMap[i];
+        }
+    }
+    return newMap
+}
+
+/*
     Send our initial ship map to the server, and override our current main ship map in this file with whatever that map is
 */
 function sendInitialShipMap(newShipMap){
@@ -71,12 +95,15 @@ function sendInitialShipMap(newShipMap){
     console.log("ran initial function")
     // TODO make this work
  
+    // in the short term, just use debug for our newShipMap
+    newShipMap = debugShipMap;
     // form our new ship map from the placed ships currently on screen
     // parseIntoShipMap()
     // update our global shipMap var in lobby.js
-    // mainShipMap = newShipMap;
+    mainShipMap = newShipMap;
+
     // send our new shipMap to python so it can associate it with the right id
-    socket.emit("send_initial_maps", LOBBY_NAME, USER_ID, debugShipMap);
+    socket.emit("send_initial_maps", LOBBY_NAME, USER_ID, newShipMap);
 }
 
 
@@ -89,19 +116,31 @@ socket.on("fullLobby", () => {
     rerender(debugShipMap, "selfMap")
 });
 
-// Re-render is called when a player makes a move; it gives them the map of where their enemy
-// has attacked (jsonHitMap) and (will) call(s) a Player method that re-renders their boards.
-socket.on("rerender", (jsonHitMap) =>{
 
-    // actual function
+/*
+    Tells the user to redraw a particular map, using the array from the given JSON
+
+    Calls a different function depending on what type it is
+    mapType: either 'shipMap' or 'hitMap'
+*/
+socket.on("rerender", (mapType, jsonHitMap) =>{
+
+    console.log(jsonHitMap);
+    // unpack the JSON into an array
     const unpackedMap = JSON.parse(jsonHitMap);
-    // console.log(unpackedMap);
 
-    // rerender our guess map (where we've guessed) with new information
-    rerender(unpackedMap, "opponentMap");
-    
-    // rerender our ship map (were our opponent has guessed + where our ships are) with new information
-    // TODO: figure this out
+    // if we've received a hit map, render that onto our hit map
+    if(mapType === "hit") {
+        rerender(unpackedMap, "opponentMap");
+    }
+    // otherwise we're rendering onto our ship map and need to combine them
+    else if(mapType === "ship") {
+        let newMap = combineHitAndShipMap(unpackedMap);
+        rerender(newMap, "selfMap");
+    }
+    else {
+        error("RECEIVED AN UNACCEPTABLE MAP TYPE IN A RERENDER MESSAGE");
+    }
 });
 
 
@@ -121,6 +160,7 @@ function createTile() {
     tile.appendChild(tileContent);
     return tile;
 }
+
 
 /*
     Rerenders a particular element based on the given JSON. 
@@ -148,25 +188,25 @@ function rerender(arrayMap, mapElement) {
 */
 function convertNumberToAssets(number) {
     switch(number) {
-            case 0:
+        case 0:
             return [ASSET_PATH + "empty.svg", "empty"];
-            case 1:
+        case 1:
             return [ASSET_PATH + "2long.svg", "2 long ship piece"];
-            case 2:
+        case 2:
             return [ASSET_PATH + "3long.svg", "3 long ship piece"];
-            case 3:
+        case 3:
             return [ASSET_PATH + "3long.svg", "3 long ship piece"];
-            case 4:
+        case 4:
             return [ASSET_PATH + "4long.svg", "4 long ship piece"];
-            case 5:
+        case 5:
             return [ASSET_PATH + "5long.svg", "5 long ship piece"];
-            case 97:
+        case 97:
             return [ASSET_PATH + "miss.svg", "hit"];
-            case 98:
+        case 98:
             return [ASSET_PATH + "hit.svg", "hit"];
-            case 99:
+        case 99:
             return [ASSET_PATH + "destroyed.svg", "destroyed ship"];
-            default:
+        default:
             return [ASSET_PATH + "error.svg", "error"];
     }
 }
@@ -183,13 +223,12 @@ for(let i = 0; i < 100; i++) {
     let tile = createTile();
     tile.addEventListener("click", () => {
         // TODO: check whether its your turn to guess
+        // TODO: move this event listener shit out of this, and encapsulate into a function
         tile.classList.add("inactive");
 
         // emit a guess request with id & slot
         // the callback to this request is a new map which we rerender onto opponentMap
-        socket.emit("guess", LOBBY_NAME, USER_ID, i, (newMap) => {
-            rerender(newMap, "opponentMap");
-        });
+        socket.emit("guess", LOBBY_NAME, USER_ID, i);
         // send a guess to the server
             // the server will check the guess against the opponent's ship map, and then send a rerender for opponentMap
     })

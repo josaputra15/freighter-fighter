@@ -121,6 +121,17 @@ def getHitMap(lobbyName, id):
         return GAMES[lobbyName]["player2"].hit_map
     else:
         raise Exception("received an ID that was neither 1 or 2")
+
+"""
+Returns the room code for a specific player in a lobby
+"""
+def getRoomCode(lobbyName, id):
+    if id == 1:
+        return GAMES[lobbyName]["player1"].roomCode
+    elif id == 2:
+        return GAMES[lobbyName]["player2"].roomCode
+    else:
+        raise Exception("received an ID that was neither 1 or 2")
     
 # =====================================
 #   Socket Callbacks
@@ -151,10 +162,12 @@ Updates the server's internal representation of a hit map based on a player's gu
 """
 def handleGuess(lobbyName, id, coords):
    #TODO: This is where we would check for a ship to be destroyed, and send a destroyed symbol if so
+
     print("handling a guess in lobby:", lobbyName)
     # if its user 1, check user 2's ship map for something, then update accordingly
     if id == 1:
         print("got into id1")
+        # if there's something there, make it a hit, otherwise make it a miss
         if GAMES[lobbyName]["player2"].ship_map[coords] != 0:
             GAMES[lobbyName]["player1"].hit_map[coords] = 98
         else:

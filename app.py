@@ -144,21 +144,41 @@ def handleInitialMaps(lobbyName, id, ship_map):
 
     # if that succeeded, run the code that responds to that
     if success:
-        # send a copy of player 1's hit_map to both players
-        emit('rerender', json.dumps(game.getHitMap(lobbyName, id)), to=lobbyName)
+        # send a copy of this player's hit_map to both players
+        # map = json.dumps(game.getHitMap(lobbyName, id))
+        # emit('rerender', map, to=lobbyName)
+        print("handled an initial map")
     else:
         print("game.py failed to handle initial maps")
     # TODO: Tell someone that it's their move
 
 """
-Responds to guesses. The return value is the array version of a map that the client will use to rerender.
+Responds to guesses. It updates the internal logic using game.handleGuess, and then sends a response "rerender" message to both players to update their
+ship/hit maps.
 """
 @socketio.on("guess")
 def handleGuess(lobbyName, id, coords):
     success = game.handleGuess(lobbyName, id, coords)
 
     if success:
-        return game.getHitMap(lobbyName, id)
+        # grab the room ID's for both players, so we can send them a message alone
+        user1Code = game.getRoomCode(lobbyName, 1)
+        user2Code = game.getRoomCode(lobbyName, 2)
+
+        # TODO: this naming is confusing. we're sending the opponent's hit map to you, but you're drawing it to your shipMap
+        if id == 1:
+            map = json.dumps(game.getHitMap(lobbyName, 1))
+            emit("rerender", ("hit", map), to=user1Code)
+            emit("rerender", ("ship", map), to=user2Code)
+            # TODO: implement a turn switch here too
+        elif id == 2:
+            map = json.dumps(game.getHitMap(lobbyName, 2))
+            # TODO: this naming is confusing. we're sending the opponent's hit map to you, but you're drawing it to your shipMap
+            emit("rerender", ("hit", map), to=user2Code)
+            emit("rerender", ("ship", map), to=user1Code)
+            # TODO: implement a turn switch here too
+        else:
+            raise Exception("received an id that was neither 1 or 2")
     else:
         print("game.py failed to handle guess")
 
