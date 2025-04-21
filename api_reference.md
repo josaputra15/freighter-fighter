@@ -23,6 +23,8 @@ dict with lobby properties and associated values
 - 98 in hits
 - 99 in destroyed slots
 
+## UI codes
+- 200 for the ready button
 
 # Functions
 

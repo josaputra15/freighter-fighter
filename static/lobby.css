@@ -33,3 +33,60 @@
     grid-template-columns: repeat(10, 8%);
     grid-template-rows: repeat(10, 8%)
 }
+
+/* placementElems contains placementTop and placementBottom */
+#placementElems {
+    display: grid;
+    gap: 10px;
+    grid-template-rows: 2;
+}
+
+/* placementTop contains sourceAndReady and placementBoard */
+#placementTop {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 20% 10% 70%;
+    max-height: 80%;
+}
+
+#shipSource {
+    display: grid;
+    gap:2px;
+    grid-template-columns: repeat(5, 20%);
+    grid-template-rows: repeat(5, 20%);
+    max-height: 40%;
+    max-width: 90%;
+}
+
+#placementBoard {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: repeat(10, 8%);
+    grid-template-rows: repeat(10, 8%);
+}
+
+/* placementBottom contains readyButtonDiv */
+
+#placementBottom {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, 50%);
+}
+
+#readyButtonDiv {
+    padding: 20px;
+    gap: 2px; 
+}
+
+#readyButtonDiv > button {
+    color: green;
+}
+
+.highlighted {
+    background-color: purple;
+}
+
+/* Worth seeing if !important is really the best way of doing this - idk what's overwriting it when I don't have it */
+.hide{
+    display: none !important;
+}

@@ -15,15 +15,25 @@
             User {{userNum}}
         </h1>
         <!-- TODO: implement this screen -->
-        <div id = "waiting" style="display:none">
+        <div id = "waiting" class="hide">
             This will contain the waiting message / circle while we wait for the opposing player
         </div>
         <!-- TODO: implement this screen -->
-        <div id = "placement" style="display:none">
-            This will contain the map, ships, and ready up button and will let you place your ships then get ready
+        <div id = "placement">
+            <h2>Prepare for war! Place your freighters!</h2>
+            <div id="placementElems">
+                <div id="placementTop">
+                    <div id="sourceAndReady">
+                        <div id="shipSource"></div>
+                        <div id="readyButtonDiv"><button type="button" disabled>Ready</button></div>
+                    </div>
+                    <div class="space"></div>
+                    <div id="placementBoard"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="gameboard">
+        <div id="gameboard" class="hide">
             <h2> Your Board</h2>
             <h2> Opponent's Board</h2>
 
