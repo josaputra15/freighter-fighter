@@ -109,7 +109,7 @@ function sendInitialShipMap(newShipMap){
 
 // Lobby is full; send the maps
 socket.on("fullLobby", () => {
-    sendInitialShipMap()
+    // sendInitialShipMap(placementMap);
 
     console.log("main ship map was this, right before we called selfMap version of rerender")
     console.log(mainShipMap)
@@ -269,6 +269,14 @@ for(let i = 0; i < 100; i++) {
 }
 
 ///////////////// Joining logic /////////////////
+
+/**
+ * Brings the game into view.
+ */
+socket.on("all_players_ready", () => {
+    document.getElementById("waiting").classList.add("hide");
+    document.getElementById("gameboard").classList.remove("hide");
+});
 
 const readyButton = document.getElementById("readyButtonDiv").firstChild;
 const shipSourceMap = [
@@ -660,8 +668,14 @@ function enableReadyButton(){
 function finishSetup(event){
     mainShipMap = placementMap;
     // show gameboard, hide placement
-    document.getElementById("gameboard").classList.remove("hide");
+    document.getElementById("waiting").classList.remove("hide");
+    // Note: These can be edited in client.
+    // TODO: (As a final polish thing) Make sure the user still can't do anything with old elements if they use inspect
+    // document.getElementById("gameboard").classList.remove("hide");
     document.getElementById("placement").classList.add("hide");
+    socket.emit("ready", LOBBY_NAME);
+    sendInitialShipMap(placementMap);
+    rerender(mainShipMap, "selfMap");
 }
 
 // generate ship source

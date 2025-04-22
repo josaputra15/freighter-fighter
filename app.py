@@ -29,6 +29,7 @@ def createLobby(lobbyName):
     lobbiesData[lobbyName]["usersConnected"] = 0
     lobbiesData[lobbyName]["user1RoomCode"] = "not set"
     lobbiesData[lobbyName]["user2RoomCode"] = "not set"
+    lobbiesData[lobbyName]["playersReady"] = 0
 
 createLobbies()
 
@@ -181,6 +182,15 @@ def handleGuess(lobbyName, id, coords):
             raise Exception("received an id that was neither 1 or 2")
     else:
         print("game.py failed to handle guess")
+
+@socketio.on("ready")
+def player_ready(lobbyName):
+    user1Code = game.getRoomCode(lobbyName, 1)
+    user2Code = game.getRoomCode(lobbyName, 2)
+    lobbiesData[lobbyName]["playersReady"] += 1
+    if(lobbiesData[lobbyName]["playersReady"] > 1):
+        emit("all_players_ready", to=user1Code)
+        emit("all_players_ready", to=user2Code)
 
 
 
