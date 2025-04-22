@@ -1,3 +1,7 @@
+//////////////////////////////////////////
+//      GLOBALS DEFINITIONS
+//////////////////////////////////////////
+
 const readyButton = document.getElementById("readyButtonDiv").firstChild;
 const shipSourceMap = [
     5, 4, 3, 2, 1,
@@ -22,6 +26,13 @@ const placementMap = [
 let shipToPlace = 0;
 // Where the user has said they want to place a ship. -1 means nothing is currently being placed.
 let placementIndex = -1;
+
+
+
+//////////////////////////////////////////
+//      FUNCTION DEFINITIONS
+//////////////////////////////////////////
+
 
 /**
  * Deactivates certain tiles, such that hovering over them doesn't display anything.
@@ -385,6 +396,8 @@ function enableReadyButton(){
 
 /**
  * Sends the finished placementMap to the server and starts the game
+ * 
+ * THIS IS THE PART THAT INTERACTS WITH OTHER PARTS OF THE LOBBY/GAME
  */
 function finishSetup(event){
     mainShipMap = placementMap;
@@ -399,6 +412,16 @@ function finishSetup(event){
     rerender(mainShipMap, "selfMap");
 }
 
+
+
+//////////////////////////////////////////////////////////////////
+//      CODE THAT ACTUALLY RUNS WHEN WE LOAD THIS FILE
+//////////////////////////////////////////////////////////////////
+
+// set up ready button
+readyButton.addEventListener("click", finishSetup);
+disableReadyButton();
+
 // generate ship source
 for(let i = 0; i < 25; i++) {
     let tile = createTile();
@@ -412,10 +435,6 @@ for(let i = 0; i < 100; i++) {
     tile.addEventListener("click", attemptPlacement);
     document.getElementById("placementBoard").appendChild(tile);
 }
-
-// set up ready button
-readyButton.addEventListener("click", finishSetup);
-disableReadyButton();
 
 // populate ship source
 // for some reason, if I try to do this before generating the placement map, the
