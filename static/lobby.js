@@ -58,12 +58,8 @@ socket.on("join", (success, usersConnected) => {
 
 // Lobby is full; send the maps
 socket.on("fullLobby", () => {
-    // sendInitialShipMap(placementMap);
-
-    console.log("main ship map was this, right before we called selfMap version of rerender")
-    console.log(mainShipMap)
-    // rerender(debugShipMap, "selfMap")
-    rerender(mainShipMap, "selfMap");
+    document.getElementById("placement").classList.remove("hide");
+    document.getElementById("waiting1").classList.add("hide");
 });
 
 
@@ -94,10 +90,11 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
 });
 
 /**
- * Brings the game into view.
+ * Hides the post-placement waiting screen. Shows the gameboard. 
+ * We will receive this at the same time as either a 'yourTurn' or 'notYourTurn', and those will determine turn order, not this
  */
 socket.on("all_players_ready", () => {
-    document.getElementById("waiting").classList.add("hide");
+    document.getElementById("waiting2").classList.add("hide");
     document.getElementById("gameboard").classList.remove("hide");
 });
 

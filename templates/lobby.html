@@ -17,10 +17,11 @@
             User {{userNum}}
         </h1>
         <!-- TODO: implement this screen -->
-        <div id = "waiting" class="hide">
-            This will contain the waiting message / circle while we wait for the opposing player
+        <div id = "waiting1">
+            This will contain the waiting message while we wait for a second person to join the lobby
         </div>
-        <div id = "placement">
+
+        <div id = "placement" class="hide">
             <h2>Prepare for war! Place your freighters!</h2>
             <div id="placementElems">
                 <div id="placementTop">
@@ -34,12 +35,15 @@
             </div>
         </div>
 
+        <div id = "waiting2" class="hide">
+            This will contain the waiting message while we wait for the opponent to finish placing their ships
+        </div>
+
         <div id="gameboard" class="hide">
             <h2> Your Board</h2>
             <h2> Opponent's Board</h2>
 
             <div id = "selfMap"></div>
-            <!-- probably we pre-populate this with the location of your ships, then just overlay -->
 
             <div id = "opponentMap"></div>
         </div>
