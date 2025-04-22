@@ -52,17 +52,6 @@ socket.on("join", (success, usersConnected) => {
     }
 })
 
-
-/*
-    This function takes the values from our HTML element shipMap (called "selfMap" right now), parses them into an array, and then returns that array.
-    We will use it when the player clicks the ready button after placing their ships. For now, we don't use this, we just pass in dummy/debug arrays to
-    sendInitialShips instead.
-*/
-function parseIntoShipMap(){
-    // checks our array of tileContent elements and uses them to make a ship map
-    // return a 100-long array representing our ship map
-}
-
 /*
     Combines a hit map from our opponent with our ship map to properly show icons from both sources
     
@@ -162,34 +151,6 @@ function createTile() {
     return tile;
 }
 
-/**
- * Creates a tile for buttons that can be used to place ships (and do other things?).
- * @param {Integer} graphic A number corresponding to the button graphic, described in the API reference. 
- */
-function createButtonTile(graphic){
-    let tile = document.createElement("div");
-    tile.className = "buttonTile";
-
-    let tileContent = document.createElement("img");
-    tileContent.className = "buttonTileContent";
-    assets = convertNumberToAssets(graphic);
-    tileContent.src = assets[0];
-    tileContent.width = "100";
-    tileContent.alt=assets[1];
-
-    
-    
-    tile.appendChild(tileContent);
-    return tile;
-}
-
-function createEmptySquare(){
-    let tile = document.createElement("div");
-    tile.className = "emptyTile";
-    tile.width = "100";
-
-    return tile;
-}
 
 
 /*
