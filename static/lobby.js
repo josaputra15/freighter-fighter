@@ -1,6 +1,6 @@
-
-
-///////////////// GLOBALS /////////////////
+//////////////////////////////////////////
+//      GLOBALS DEFINITIONS
+//////////////////////////////////////////
 var mainShipMap = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -33,9 +33,13 @@ const LOBBY_NAME = Number(window.location.pathname[1]);
 var USER_ID;
 const ASSET_PATH = "static/assets/";
 
-///////////////// Joining logic /////////////////
 
-socket.emit("join", LOBBY_NAME);
+
+//////////////////////////////////////////
+//      SOCKET RESPONSES
+//////////////////////////////////////////
+
+
 
 socket.on("join", (success, usersConnected) => {
     if(success === 1) {
@@ -51,50 +55,6 @@ socket.on("join", (success, usersConnected) => {
         // send to an error / index page. do not actually play/send messages
     }
 })
-
-/*
-    Combines a hit map from our opponent with our ship map to properly show icons from both sources
-    
-    Returns a 100-long array that is this combination
-*/
-function combineHitAndShipMap(hitMap){
-    // using this to create an empty array: https://stackoverflow.com/a/45968309
-    let newMap = Array.from({length: 100})
-
-    for(let i = 0; i < 100; i++) {
-        // if the hit map doesn't have anything in that slot, default to our ship map's icon
-        console.log(hitMap[i]);
-        if(hitMap[i] === 0) {
-            console.log('used main');
-            newMap[i] = mainShipMap[i]
-        }
-        // otherwise use the thing from the hit map
-        else {
-            newMap[i] = hitMap[i];
-        }
-    }
-    return newMap
-}
-
-/*
-    Send our initial ship map to the server, and override our current main ship map in this file with whatever that map is
-*/
-function sendInitialShipMap(newShipMap){
-    // https://socket.io/docs/v4/emitting-events/
-    console.log("ran initial function")
-    // TODO make this work
- 
-    // // in the short term, just use debug for our newShipMap
-    // newShipMap = debugShipMap;
-    // form our new ship map from the placed ships currently on screen
-    // parseIntoShipMap()
-    // update our global shipMap var in lobby.js
-    mainShipMap = newShipMap;
-
-    // send our new shipMap to python so it can associate it with the right id
-    socket.emit("send_initial_maps", LOBBY_NAME, USER_ID, newShipMap);
-}
-
 
 // Lobby is full; send the maps
 socket.on("fullLobby", () => {
@@ -133,6 +93,39 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
     }
 });
 
+/**
+ * Brings the game into view.
+ */
+socket.on("all_players_ready", () => {
+    document.getElementById("waiting").classList.add("hide");
+    document.getElementById("gameboard").classList.remove("hide");
+});
+
+
+
+//////////////////////////////////////////
+//      FUNCTION DEFINITIONS
+//////////////////////////////////////////
+
+
+/*
+    Draws the correct icons in each slot of 'mapElement' based on the numbers from 'arrayMap'
+
+    Does not accept JSON. Parse any JSON into an array before calling this
+*/
+function rerender(arrayMap, mapElement) {
+
+    // array of all tiles in the element
+    let tileList = document.getElementById(mapElement).children;
+    
+    // for each tile in the element, fill it with the asset it ought to have
+    for (let i = 0; i < arrayMap.length; i++) {
+        let tileContent = tileList[i].firstChild;
+        let assets = convertNumberToAssets(arrayMap[i])
+        tileContent.src = assets[0]
+        tileContent.alt = assets[1]
+    }
+}
 
 /*
     Creates a tile element, defaulting to having an empty space
@@ -151,26 +144,42 @@ function createTile() {
     return tile;
 }
 
+/*
+    Combines a hit map from our opponent with our ship map to properly show icons from both sources
+    
+    Returns a 100-long array that is this combination
+*/
+function combineHitAndShipMap(hitMap){
+    // using this to create an empty array: https://stackoverflow.com/a/45968309
+    let newMap = Array.from({length: 100})
 
+    for(let i = 0; i < 100; i++) {
+        // if the hit map doesn't have anything in that slot, default to our ship map's icon
+        console.log(hitMap[i]);
+        if(hitMap[i] === 0) {
+            console.log('used main');
+            newMap[i] = mainShipMap[i]
+        }
+        // otherwise use the thing from the hit map
+        else {
+            newMap[i] = hitMap[i];
+        }
+    }
+    return newMap
+}
 
 /*
-    Rerenders a particular element based on the given JSON. 
+    Send our initial ship map to the server, and override our current main ship map in this file with whatever that map is
 */
-function rerender(arrayMap, mapElement) {
-
-    // console.log("given map element was " + mapElement)
-    let tileList = document.getElementById(mapElement).children;
+function sendInitialShipMap(newShipMap){
     
-    // console.log("array map was")
-    // console.log(arrayMap)
+    // update our global shipMap var in lobby.js to be the new map
+    mainShipMap = newShipMap;
 
-    for (let i = 0; i < arrayMap.length; i++) {
-        let tileContent = tileList[i].firstChild;
-        let assets = convertNumberToAssets(arrayMap[i])
-        tileContent.src = assets[0]
-        tileContent.alt = assets[1]
-    }
+    // send our new shipMap to python so it can associate it with the right user id
+    socket.emit("send_initial_maps", LOBBY_NAME, USER_ID, newShipMap);
 }
+
 
 /*
     Converts a number into an svg-altText combination, using our number -> symbol rules from the API Reference
@@ -205,36 +214,55 @@ function convertNumberToAssets(number) {
     }
 }
 
-// generate selfMap
-for(let i = 0; i < 100; i++) {
-    let tile = createTile();
-    tile.classList.add("inactive");
-    document.getElementById("selfMap").appendChild(tile);
-}
+/**
+ * Fills the "selfMap" HTML element with each of its tiles. They are inactive, so unclickable.
+ */
+function generateSelfMap() {
+    let selfMap = document.getElementById("selfMap");
 
-// generate opponentMap
-for(let i = 0; i < 100; i++) {
-    let tile = createTile();
-    tile.addEventListener("click", () => {
-        // TODO: check whether its your turn to guess
-        // TODO: move this event listener shit out of this, and encapsulate into a function
+    for(let i = 0; i < 100; i++) {
+        let tile = createTile();
         tile.classList.add("inactive");
-
-        // emit a guess request with id & slot
-        // the callback to this request is a new map which we rerender onto opponentMap
-        socket.emit("guess", LOBBY_NAME, USER_ID, i);
-        // send a guess to the server
-            // the server will check the guess against the opponent's ship map, and then send a rerender for opponentMap
-    })
-    document.getElementById("opponentMap").appendChild(tile);
+        selfMap.appendChild(tile);
+    }
 }
-
-///////////////// Joining logic /////////////////
 
 /**
- * Brings the game into view.
+ * Fills the "opponentMap" HTML element with each of its tiles AND gives them their callbacks
  */
-socket.on("all_players_ready", () => {
-    document.getElementById("waiting").classList.add("hide");
-    document.getElementById("gameboard").classList.remove("hide");
-});
+function generateOpponentMap() {
+    let opponentMap = document.getElementById("opponentMap");
+    for(let i = 0; i < 100; i++) {
+        let tile = createTile();
+        tile.addEventListener("click", () => {
+            guess(i);
+        })
+        opponentMap.appendChild(tile);
+}
+
+/**
+ * Makes a guess using the passed index. Sends the guess to python, updates turn order, and deactivates tile
+ * @param {BigInt} index 
+ */
+function guess(index) {
+    // find the tile element
+    let tile = document.getElementById("opponentMap").children[index]
+    tile.classList.add("inactive");
+
+    // emit a guess request with id & slot
+    // the callback to this request is a new map which we rerender onto opponentMap
+    socket.emit("guess", LOBBY_NAME, USER_ID, index);
+}
+
+}
+/////////////////////////////////////////////////////////////
+//      CODE THAT ACTUALLY RUNS WHEN WE LOAD THIS FILE
+////////////////////////////////////////////////////////////
+
+
+
+socket.emit("join", LOBBY_NAME);
+
+generateSelfMap();
+
+generateOpponentMap();
