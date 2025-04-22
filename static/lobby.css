@@ -82,11 +82,15 @@
     color: green;
 }
 
+#readyButtonDiv > button[disabled] {
+    color: red;
+}
+
 .highlighted {
     background-color: purple;
 }
 
 /* Worth seeing if !important is really the best way of doing this - idk what's overwriting it when I don't have it */
-.hide{
+.hide {
     display: none !important;
 }
