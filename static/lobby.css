@@ -82,6 +82,7 @@
     color: green;
 }
 
+/* https://www.w3schools.com/css/css_attribute_selectors.asp */
 #readyButtonDiv > button[disabled] {
     color: red;
 }
