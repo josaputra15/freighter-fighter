@@ -694,6 +694,7 @@ for(let i = 0; i < 100; i++) {
 
 // set up ready button
 readyButton.addEventListener("click", finishSetup);
+disableReadyButton();
 
 // populate ship source
 // for some reason, if I try to do this before generating the placement map, the
