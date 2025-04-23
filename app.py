@@ -1,3 +1,4 @@
+from random import random
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
 import json
@@ -6,16 +7,23 @@ import game
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
 
-# TODO: figure out how to manage people reconnecting
     # maybe use sessions - which requires a secret key
 
 # TODO: make an error handler for some of the big errors - 503, 404
 
+# TODO: figure out win conditions
+# TODO: fix lobby creation
+# TODO: close lobbies on disconnects
+
+# TODO: add SQL stuff
+    # this is probably just adding stats to big moments that just add to the sqllite DB
+    # and also this is having a "stats page" linked from index that just shows those stats
+
+# TODO: make the site a lot prettier
 
 #==============================
 # Globals + Set-Up
 #==============================
-# TODO: figure out if this ought to be in the name = main shit
 lobbiesData = {}
 
 def createLobbies():
@@ -124,6 +132,7 @@ def handleJoin(lobby):
             # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
             game.create_game(lobby, lobbiesData[lobby]["user1RoomCode"], lobbiesData[lobby]["user2RoomCode"])
     else:
+        # emit a failed join request with no ID and no lobby.
         emit('join', (0, 0))
 
 
@@ -166,31 +175,47 @@ def handleGuess(lobbyName, id, coords):
         user1Code = game.getRoomCode(lobbyName, 1)
         user2Code = game.getRoomCode(lobbyName, 2)
 
-        # TODO: this naming is confusing. we're sending the opponent's hit map to you, but you're drawing it to your shipMap
+        # this naming is confusing. 
+            # the first rerender is rendering your hitMap to your opponentMap element
+            # the second rerender is rendering your opponent's hitMap to your selfMap, which is why it's called "ship"
+            # which is why we can pass the same map to both of them
+
         if id == 1:
             map = json.dumps(game.getHitMap(lobbyName, 1))
             emit("rerender", ("hit", map), to=user1Code)
             emit("rerender", ("ship", map), to=user2Code)
-            # TODO: implement a turn switch here too
+            # switch turns to user 2
+            emit("turnUpdate", 2, to=lobbyName)
+
         elif id == 2:
             map = json.dumps(game.getHitMap(lobbyName, 2))
-            # TODO: this naming is confusing. we're sending the opponent's hit map to you, but you're drawing it to your shipMap
             emit("rerender", ("hit", map), to=user2Code)
             emit("rerender", ("ship", map), to=user1Code)
-            # TODO: implement a turn switch here too
+            # switch turns to user 1
+            emit("turnUpdate", 1, to=lobbyName)
+
         else:
             raise Exception("received an id that was neither 1 or 2")
     else:
         print("game.py failed to handle guess")
 
+
+"""
+Updates the number of ready users.
+If all are ready, it sends a turnUpdate and starts the guessing
+"""
 @socketio.on("ready")
 def player_ready(lobbyName):
-    user1Code = game.getRoomCode(lobbyName, 1)
-    user2Code = game.getRoomCode(lobbyName, 2)
     lobbiesData[lobbyName]["playersReady"] += 1
     if(lobbiesData[lobbyName]["playersReady"] > 1):
-        emit("all_players_ready", to=user1Code)
-        emit("all_players_ready", to=user2Code)
+        # this does our initial turn order
+        coinFlip = random()
+        if coinFlip > 0.5:
+            emit("turnUpdate", 1, to=lobbyName)
+        else:
+            emit("turnUpdate", 2, to=lobbyName)
+        
+        emit("all_players_ready", to=lobbyName)
 
 
 

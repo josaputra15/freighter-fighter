@@ -40,7 +40,9 @@ const ASSET_PATH = "static/assets/";
 //////////////////////////////////////////
 
 
-
+/**
+ * Check whether there is room in the lobby. Join and create our ID if there is, fail if not
+ */
 socket.on("join", (success, usersConnected) => {
     if(success === 1) {
         // you have joined the room, start to check for whether the other person is in, then place ships, then run game
@@ -56,22 +58,23 @@ socket.on("join", (success, usersConnected) => {
     }
 })
 
-// Lobby is full; send the maps
+
+/**
+ * Both players are connected to the lobby. Hide the first waiting screen and allow them to place ships
+ */
 socket.on("fullLobby", () => {
     document.getElementById("placement").classList.remove("hide");
     document.getElementById("waiting1").classList.add("hide");
 });
 
 
-/*
+/**
     Tells the user to redraw a particular map, using the array from the given JSON
 
     Calls a different function depending on what type it is
     mapType: either 'shipMap' or 'hitMap'
 */
 socket.on("rerender", (mapType, jsonHitMap) =>{
-
-    console.log(jsonHitMap);
     // unpack the JSON into an array
     const unpackedMap = JSON.parse(jsonHitMap);
 
@@ -89,6 +92,7 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
     }
 });
 
+
 /**
  * Hides the post-placement waiting screen. Shows the gameboard. 
  * We will receive this at the same time as either a 'yourTurn' or 'notYourTurn', and those will determine turn order, not this
@@ -99,11 +103,23 @@ socket.on("all_players_ready", () => {
 });
 
 
+socket.on("turnUpdate", (id) => {
+    if (id === USER_ID) {
+        // it's my turn - activate all of the appropriate tiles and update the ticker
+        console.log("my turn!")
+        enableGuessing()
+    }
+    else {
+        disableGuessing()
+        // it's not my turn - deactive opponent map and update the ticker
+        console.log("not my turn :(")
+    }
+})
+
 
 //////////////////////////////////////////
 //      FUNCTION DEFINITIONS
 //////////////////////////////////////////
-
 
 /*
     Draws the correct icons in each slot of 'mapElement' based on the numbers from 'arrayMap'
@@ -152,9 +168,7 @@ function combineHitAndShipMap(hitMap){
 
     for(let i = 0; i < 100; i++) {
         // if the hit map doesn't have anything in that slot, default to our ship map's icon
-        console.log(hitMap[i]);
         if(hitMap[i] === 0) {
-            console.log('used main');
             newMap[i] = mainShipMap[i]
         }
         // otherwise use the thing from the hit map
@@ -176,7 +190,6 @@ function sendInitialShipMap(newShipMap){
     // send our new shipMap to python so it can associate it with the right user id
     socket.emit("send_initial_maps", LOBBY_NAME, USER_ID, newShipMap);
 }
-
 
 /*
     Converts a number into an svg-altText combination, using our number -> symbol rules from the API Reference
@@ -235,6 +248,7 @@ function generateOpponentMap() {
             guess(i);
         })
         opponentMap.appendChild(tile);
+    }
 }
 
 /**
@@ -244,14 +258,41 @@ function generateOpponentMap() {
 function guess(index) {
     // find the tile element
     let tile = document.getElementById("opponentMap").children[index]
-    tile.classList.add("inactive");
+    tile.classList.add("guessed");
 
     // emit a guess request with id & slot
     // the callback to this request is a new map which we rerender onto opponentMap
     socket.emit("guess", LOBBY_NAME, USER_ID, index);
 }
 
+
+/**
+ * Makes all unguessed tiles in opponentMap active
+ */
+function enableGuessing() {
+    let tileList = document.getElementById("opponentMap").children;
+
+    for(let i=0; i < 100; i++) {
+        let tile = tileList[i]
+        // if the tile has NOT been guessed
+        if(!tile.classList.contains("guessed")) {
+            tile.classList.remove("inactive")
+        }
+    }
 }
+
+/**
+ * Makes all tiles in opponentMap inactive.
+ */
+function disableGuessing() {
+    let tileList = document.getElementById("opponentMap").children;
+
+    for(let i=0; i < 100; i++) {
+        let tile = tileList[i]
+        tile.classList.add("inactive");
+    }
+}
+
 /////////////////////////////////////////////////////////////
 //      CODE THAT ACTUALLY RUNS WHEN WE LOAD THIS FILE
 ////////////////////////////////////////////////////////////
