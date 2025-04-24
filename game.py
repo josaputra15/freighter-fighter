@@ -20,12 +20,22 @@ import json
 
 class Ship():
     timesHit = 0
+    destroyed = False
 
     def __init__(self, hp):
         self.hp = hp
     
     def __str__(self):
         return f"I am a {self.hp} length ship that has been hit {self.timesHit} times!"
+
+    def hit(self):
+        self.timesHit += 1
+
+        if(self.timesHit >= self.hp):
+            self.destroyed = True
+    
+    def getDestroyed(self):
+        return self.destroyed
 
 '''
 Contains ship_map: a 2d array with Ships and 0s (when there is no Ship) 
@@ -79,6 +89,20 @@ class Player():
         symbol_table = [0, self.s1, self.s2, self.s3, self.s4, self.s5]
         for i in range(0, 100):
             self.ship_map[i] = symbol_table[initial_map[i]]
+
+    def destroyShip(self):
+        self.ships_left -= 1
+    
+    def checkDestroyed(self):
+        """
+        Returns True if all of the player's ships are destroyed, and False if any are still alive.
+        """
+        for ship in [self.s1, self.s2, self.s3, self.s4, self.s5]:
+            if not ship.getDestroyed(): 
+                return False
+        
+        return True
+
 
 # ===============================
 #   Globals
@@ -157,32 +181,68 @@ def handleInitialMaps(lobbyName, id, ship_map):
         return True
 
 
-"""
-Updates the server's internal representation of a hit map based on a player's guess
-"""
-def handleGuess(lobbyName, id, coords):
-   #TODO: This is where we would check for a ship to be destroyed, and send a destroyed symbol if so
 
+def handleGuess(lobbyName, id, coords):
+    """
+    Updates the server's internal representation of a hit map based on a player's guess.
+    If any ships are hit, we check both boards to see if we need to update our destroyed icons
+    """
     print("handling a guess in lobby:", lobbyName)
     # if its user 1, check user 2's ship map for something, then update accordingly
     if id == 1:
-        print("got into id1")
+        ship = GAMES[lobbyName]["player2"].ship_map[coords]
         # if there's something there, make it a hit, otherwise make it a miss
-        if GAMES[lobbyName]["player2"].ship_map[coords] != 0:
+        if ship != 0:
             GAMES[lobbyName]["player1"].hit_map[coords] = 98
+            ship.hit()
         else:
             GAMES[lobbyName]["player1"].hit_map[coords] = 97
         return True
 
     # if its user 2, check user 1's ship map for something, then update accordingly
     elif id == 2:
-        print("got into id2")
-        if GAMES[lobbyName]["player1"].ship_map[coords] != 0:
+        ship = GAMES[lobbyName]["player1"].ship_map[coords]
+        if ship != 0:
             GAMES[lobbyName]["player2"].hit_map[coords] = 98
+            ship.hit()
         else:
             GAMES[lobbyName]["player2"].hit_map[coords] = 97
-        return True   
+        return True
     
     # if the id is fucked, everything is broken
     else:
         raise Exception("In a guess, we received an ID that was neither 1 or 2")
+
+
+def checkForDestroyedShips(lobbyName):
+    """
+    Looks through both maps to determine whether any ships are destroyed. Updates the appropriate hit map with destroyed icons if any are.
+    """
+    p1hitMap = GAMES[lobbyName]["player1"].hit_map
+    p2hitMap = GAMES[lobbyName]["player2"].hit_map
+
+    for coords in range(100):
+        p1ship = GAMES[lobbyName]["player1"].ship_map[coords]
+        p2ship = GAMES[lobbyName]["player2"].ship_map[coords]
+
+        if p1ship != 0:
+            if p1ship.getDestroyed():
+                p2hitMap[coords] = 99
+        
+        if p2ship != 0:
+            if p2ship.getDestroyed():
+                p1hitMap[coords] = 99
+
+
+def checkForVictory(lobbyName):
+    """
+    Checks whether any player has had all of their ships destroyed. If they have, returns the id of the winner.
+
+    Returns ID of winner, and False if there is no winner yet.
+    """
+    if GAMES[lobbyName]["player1"].checkDestroyed():
+        return 2
+    if GAMES[lobbyName]["player2"].checkDestroyed():
+        return 1
+    
+    return False

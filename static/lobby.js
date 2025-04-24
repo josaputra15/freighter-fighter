@@ -102,7 +102,9 @@ socket.on("all_players_ready", () => {
     document.getElementById("gameboard").classList.remove("hide");
 });
 
-
+/**
+ * Changes whose turn it is. If it's now your turn, enable guessing. If it's the opponent's turn, disable guessing
+ */
 socket.on("turnUpdate", (id) => {
     if (id === USER_ID) {
         // it's my turn - activate all of the appropriate tiles and update the ticker
@@ -116,6 +118,23 @@ socket.on("turnUpdate", (id) => {
     }
 })
 
+/**
+ * Handles a victory. If you won, it shows you that message. If you lost, it shows you that message.
+ * TODO: make the logic in here make more sense
+ * TODO: maybe make it so you see where the remaining ships were if you lost?
+ */
+socket.on("victory", (id) => {
+    console.log("received a victory message")
+    disableGuessing();
+    if(id === USER_ID) {
+        console.log("I WON!!!!!!!!!!");
+        alert("You won!");
+    }
+    else {
+        console.log("I LOST :(((((((((((");
+        alert("You lost :(");
+    }
+})
 
 //////////////////////////////////////////
 //      FUNCTION DEFINITIONS

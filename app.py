@@ -169,6 +169,7 @@ ship/hit maps.
 @socketio.on("guess")
 def handleGuess(lobbyName, id, coords):
     success = game.handleGuess(lobbyName, id, coords)
+    game.checkForDestroyedShips(lobbyName)
 
     if success:
         # grab the room ID's for both players, so we can send them a message alone
@@ -196,6 +197,8 @@ def handleGuess(lobbyName, id, coords):
 
         else:
             raise Exception("received an id that was neither 1 or 2")
+
+        checkForVictory(lobbyName)
     else:
         print("game.py failed to handle guess")
 
@@ -207,6 +210,7 @@ If all are ready, it sends a turnUpdate and starts the guessing
 @socketio.on("ready")
 def player_ready(lobbyName):
     lobbiesData[lobbyName]["playersReady"] += 1
+
     if(lobbiesData[lobbyName]["playersReady"] > 1):
         # this does our initial turn order
         coinFlip = random()
@@ -218,6 +222,14 @@ def player_ready(lobbyName):
         emit("all_players_ready", to=lobbyName)
 
 
+def checkForVictory(lobbyName):
+    """
+    Asks game.py whether any player has won. If one has, emits messages to both players about the result.
+    """
+    victory = game.checkForVictory(lobbyName)
+    if victory:
+        # send a victory message with the winner's id as the content
+        socketio.emit("victory", victory, to=lobbyName)
 
 # ===========================
 #   Weird stuff to make this work in a way we never use
