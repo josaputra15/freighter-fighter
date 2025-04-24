@@ -226,7 +226,9 @@ def player_ready(lobbyName):
         else:
             emit("turnUpdate", 2, to=lobbyName)
         
-        emit("all_players_ready", to=lobbyName)
+        emit("all_players_ready", to=game.GAMES[lobbyName]["player1"].getUserCode())
+        emit("all_players_ready", to=game.GAMES[lobbyName]["player2"].getUserCode())
+
 
 
 def checkForVictory(lobbyName):
