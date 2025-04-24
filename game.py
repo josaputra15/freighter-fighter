@@ -102,6 +102,9 @@ class Player():
                 return False
         
         return True
+    
+    def getUserCode(self):
+        return self.roomCode
 
 
 # ===============================
