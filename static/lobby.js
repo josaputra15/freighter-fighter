@@ -104,12 +104,16 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
 socket.on("all_players_ready", () => {
     document.getElementById("status").innerText = "Both players finished placing their ships"
     document.getElementById("gameboard").classList.remove("hide");
+
+    console.log("received an all players ready message");
 });
 
 /**
  * Changes whose turn it is. If it's now your turn, enable guessing. If it's the opponent's turn, disable guessing
  */
 socket.on("turnUpdate", (id) => {
+    console.log("received a turn update message");
+
     if (id === USER_ID) {
         // it's my turn - activate all of the appropriate tiles and update the ticker
         console.log("my turn!")

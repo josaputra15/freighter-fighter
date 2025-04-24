@@ -193,14 +193,16 @@ def handleGuess(lobbyName, id, coords):
             emit("rerender", ("hit", map), to=user1Code)
             emit("rerender", ("ship", map), to=user2Code)
             # switch turns to user 2
-            emit("turnUpdate", 2, to=lobbyName)
+            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
+            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
         elif id == 2:
             map = json.dumps(game.getHitMap(lobbyName, 2))
             emit("rerender", ("hit", map), to=user2Code)
             emit("rerender", ("ship", map), to=user1Code)
             # switch turns to user 1
-            emit("turnUpdate", 1, to=lobbyName)
+            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player1"].getUserCode())
+            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
         else:
             raise Exception("received an id that was neither 1 or 2")
@@ -222,11 +224,16 @@ def player_ready(lobbyName):
         # this does our initial turn order
         coinFlip = random()
         if coinFlip > 0.5:
-            emit("turnUpdate", 1, to=lobbyName)
+            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player1"].getUserCode())
+            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player2"].getUserCode())
         else:
-            emit("turnUpdate", 2, to=lobbyName)
+            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
+            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
         
-        emit("all_players_ready", to=lobbyName)
+        # TODO: This is a janky way of sending messages, maybe clean it up?
+        emit("all_players_ready", to=game.GAMES[lobbyName]["player1"].getUserCode())
+        emit("all_players_ready", to=game.GAMES[lobbyName]["player2"].getUserCode())
+
 
 
 def checkForVictory(lobbyName):
@@ -236,7 +243,8 @@ def checkForVictory(lobbyName):
     victory = game.checkForVictory(lobbyName)
     if victory:
         # send a victory message with the winner's id as the content
-        socketio.emit("victory", victory, to=lobbyName)
+        socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player1"].getUserCode())
+        socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
 # ===========================
 #   Weird stuff to make this work in a way we never use
