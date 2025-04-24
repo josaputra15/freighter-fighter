@@ -50,6 +50,9 @@ createLobbies()
 def index():
     return render_template("index.html")
 
+@app.get("/rules")
+def rules():
+    return render_template("rules.html")
 
 # serve our lobby.html page when you go to any other page. uses the passed lobby (second part of URL) as part of the template
 @app.get("/<lobby>")
