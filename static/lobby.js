@@ -48,6 +48,10 @@ socket.on("join", (success, usersConnected) => {
         // you have joined the room, start to check for whether the other person is in, then place ships, then run game
         console.log("heard back from join with success: " + success + "\n ID = " + usersConnected);
         USER_ID = usersConnected;
+
+        // add your user ID to the main title
+        document.getElementsByTagName("h1")[0].innerText += (" " + USER_ID)
+
         // alert("You successfully joined the room");
 
     }
@@ -60,11 +64,11 @@ socket.on("join", (success, usersConnected) => {
 
 
 /**
- * Both players are connected to the lobby. Hide the first waiting screen and allow them to place ships
+ * Both players are connected to the lobby. Show placement and update the status div.
  */
 socket.on("fullLobby", () => {
+    document.getElementById("status").innerText = "Place your ships!";
     document.getElementById("placement").classList.remove("hide");
-    document.getElementById("waiting1").classList.add("hide");
 });
 
 
@@ -98,7 +102,7 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
  * We will receive this at the same time as either a 'yourTurn' or 'notYourTurn', and those will determine turn order, not this
  */
 socket.on("all_players_ready", () => {
-    document.getElementById("waiting2").classList.add("hide");
+    document.getElementById("status").innerText = "Both players finished placing their ships"
     document.getElementById("gameboard").classList.remove("hide");
 });
 
@@ -109,11 +113,13 @@ socket.on("turnUpdate", (id) => {
     if (id === USER_ID) {
         // it's my turn - activate all of the appropriate tiles and update the ticker
         console.log("my turn!")
+        document.getElementById("status").innerText = "It's your turn to guess";
         enableGuessing()
     }
     else {
-        disableGuessing()
         // it's not my turn - deactive opponent map and update the ticker
+        document.getElementById("status").innerText = "Waiting for your opponent to guess";
+        disableGuessing()
         console.log("not my turn :(")
     }
 })
@@ -127,10 +133,12 @@ socket.on("victory", (id) => {
     console.log("received a victory message")
     disableGuessing();
     if(id === USER_ID) {
+        document.getElementById("status").innerText = "You won by destroying your opponent's last ship!";
         console.log("I WON!!!!!!!!!!");
         alert("You won!");
     }
     else {
+        document.getElementById("status").innerText = "You lost because your opponent destroyed your last ship :(";
         console.log("I LOST :(((((((((((");
         alert("You lost :(");
     }
@@ -171,6 +179,7 @@ function createTile() {
     tileContent.src="static/assets/empty.svg";
     tileContent.width="100";
     tileContent.alt="empty";
+    tileContent.draggable = false;
 
     tile.appendChild(tileContent);
     return tile;

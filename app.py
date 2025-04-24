@@ -57,7 +57,7 @@ def rules():
 # serve our lobby.html page when you go to any other page. uses the passed lobby (second part of URL) as part of the template
 @app.get("/<lobby>")
 def lobby(lobby):
-    return render_template("lobby.html", lobbyNum=lobby, userNum="example")
+    return render_template("lobby.html", lobbyName=lobby)
 
 @app.get("/stats")
 def stats():

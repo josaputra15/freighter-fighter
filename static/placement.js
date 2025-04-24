@@ -401,11 +401,12 @@ function enableReadyButton(){
  */
 function finishSetup(event){
     mainShipMap = placementMap;
+
     // show gameboard, hide placement
-    document.getElementById("waiting2").classList.remove("hide");
+    document.getElementById("status").innerText = "Waiting for opponent to finish placing their ships";
+
     // Note: These can be edited in client.
     // TODO: (As a final polish thing) Make sure the user still can't do anything with old elements if they use inspect
-    // document.getElementById("gameboard").classList.remove("hide");
     document.getElementById("placement").classList.add("hide");
     socket.emit("ready", LOBBY_NAME);
     sendInitialShipMap(placementMap);

@@ -11,17 +11,17 @@
 
 
     <body>
-        <h1>
-            Lobby {{lobbyNum}}
-            </br>
-            User {{userNum}}
-        </h1>
-        <!-- TODO: implement this screen -->
-        <div id = "waiting1">
-            This will contain the waiting message while we wait for a second person to join the lobby
-        </div>
+        <header>
+            <h1>
+                Lobby {{lobbyName}} - User 
+            </h1>
+        </header>
 
-        <div id = "placement" class="hide">
+        <section id="status">
+            Waiting for opponent to join lobby...
+        </section>
+
+        <section div id = "placement" class="hide">
             <h2>Prepare for war! Place your freighters!</h2>
             <div id="placementElems">
                 <div id="placementTop">
@@ -33,19 +33,15 @@
                     <div id="placementBoard"></div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id = "waiting2" class="hide">
-            This will contain the waiting message while we wait for the opponent to finish placing their ships
-        </div>
-
-        <div id="gameboard" class="hide">
+        <section id="gameboard" class="hide">
             <h2> Your Board</h2>
             <h2> Opponent's Board</h2>
 
             <div id = "selfMap"></div>
 
             <div id = "opponentMap"></div>
-        </div>
+        </section>
     </body>
 </html>

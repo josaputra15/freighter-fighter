@@ -1,3 +1,31 @@
+/*
+    Lobby styling
+*/
+h1 {
+    text-align: center;
+}
+
+#status {
+    font-size: x-large;
+    /* margin: auto; */
+    text-align: center;
+}
+
+#status.main {
+    font-size: xx-large;
+}
+
+/* Worth seeing if !important is really the best way of doing this - idk what's overwriting it when I don't have it */
+.hide {
+    display: none !important;
+}
+
+
+
+
+/* 
+    Gameboard styling
+*/
 .tile {
     background-color: lightblue;
     padding:3px;
@@ -33,6 +61,10 @@
     grid-template-columns: repeat(10, 8%);
     grid-template-rows: repeat(10, 8%)
 }
+
+/* 
+    Placement styling
+*/
 
 /* placementElems contains placementTop and placementBottom */
 #placementElems {
@@ -89,9 +121,4 @@
 
 .highlighted {
     background-color: purple;
-}
-
-/* Worth seeing if !important is really the best way of doing this - idk what's overwriting it when I don't have it */
-.hide {
-    display: none !important;
 }
