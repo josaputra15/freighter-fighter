@@ -102,9 +102,7 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
  * We will receive this at the same time as either a 'yourTurn' or 'notYourTurn', and those will determine turn order, not this
  */
 socket.on("all_players_ready", () => {
-    document.getElementById("status").innerText = "Both players finished placing their ships"
     document.getElementById("gameboard").classList.remove("hide");
-
     console.log("received an all players ready message");
 });
 

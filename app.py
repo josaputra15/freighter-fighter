@@ -63,6 +63,21 @@ def lobby(lobby):
 def stats():
     return render_template("stats.html")
 
+@app.get("get_stat/<statName>")
+def get_stat(statName):
+    if(statName == "started"):
+        return 5, 200
+    elif(statName == "won"):
+        return 100, 200
+    elif(statName == "made"):
+        return 1000, 200
+    elif(statName == "hit"):
+        return 500, 200
+    elif(statName == "missed"):
+        return 500, 200
+    else:
+        return "Invalid option", 405
+
 
 # ===============================
 #       INDEX FUNCTIONS
