@@ -59,6 +59,10 @@ def rules():
 def lobby(lobby):
     return render_template("lobby.html", lobbyNum=lobby, userNum="example")
 
+@app.get("/stats")
+def stats():
+    return render_template("stats.html")
+
 
 # ===============================
 #       INDEX FUNCTIONS
