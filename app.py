@@ -29,13 +29,15 @@ socketio = SocketIO(app) # wrap socketio installation into new name - maybe make
 #==============================
 # Globals + Set-Up
 #==============================
+NUM_LOBBIES = 9
+
 lobbiesData = {}
 
 def createLobbies():
     # Create the storage for each 
-    for i in range(4):
-        lobbiesData[i] = {}
-        createLobby(i)
+    for i in range(NUM_LOBBIES):
+        lobbiesData[i+1] = {}
+        createLobby(i+1)
 
 def createLobby(lobbyName):
     # make sure that each room is initialized to have 0 connected users
@@ -156,7 +158,7 @@ def reset_db():
 # serve our index.html page when you go to the root page
 @app.get("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", numLobbies = NUM_LOBBIES)
 
 @app.get("/rules")
 def rules():

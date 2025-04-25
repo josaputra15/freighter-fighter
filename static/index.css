@@ -1,1 +1,43 @@
 /* Put styling for the main page here */
+
+#lobbies {
+    margin:auto;
+    display:grid;
+    justify-content:center;
+    width: 70%;
+    grid-template: 25vmin 25vmin 25vmin / 25vmin 25vmin 25vmin;
+}
+
+a {
+    font-size: x-large;
+    color: black;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.lobbySelector {
+    padding-top: 10px;
+    padding-bottom: 10p;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+.lobbySelector:focus {
+    border: 8px black dashed;
+}
+
+.lobbySelector:hover {
+    border: 8px black dashed;
+}
+
+h1 {
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+header {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+}
