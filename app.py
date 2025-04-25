@@ -1,6 +1,11 @@
+from dataclasses import dataclass
 from random import random
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, render_template, request
 from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 import json
 import game
 
@@ -43,8 +48,111 @@ createLobbies()
 
 
 #==============================
+#   Database Set-Up - pretty much stole this from HW3
+#==============================
+
+# Configure Database
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///stats.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Initialize SQLAlchemy with Declarative Base
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+db.init_app(app)
+
+
+# Define the Stat model using `Mapped` and `mapped_column`
+# also make it a dataclass so we can easily turn it into json later
+    # took that logic from https://www.reddit.com/r/flask/comments/vll4xu/comment/idwhc92/
+@dataclass
+class Stat(db.Model):
+    __tablename__ = "stats"
+
+    name: Mapped[str] = mapped_column(String(15), primary_key=True)
+    number: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # main difference from HW3 is that we just use the name as the primary key, because we only need these to fill the
+    # persistent storage requirement, and won't be creating any new items once in deployment. Instead, we just update them to have +1 number whenever necessary
+    def __init__(self, name: str, number: int):
+        self.name = name
+        self.number = number
+
+
+# DATABASE UTILITY CLASS
+class Database:
+    def __init__(self):
+        pass
+
+    def get(self, name: str = None):
+        """Retrieve a specific stat by name. If none passed, returns all stats"""
+        if not name:
+            return db.session.query(Stat).all()
+        return db.session.get(Stat, name)
+
+    def create(self, name: str, number: int):
+        """Create a new stat. Should only be used when inititially creating the """
+        new_stat = Stat(name=name, number=number)
+        db.session.add(new_stat)
+        db.session.commit()
+
+    def update(self, name: str, number: int):
+        """Update an existing stat."""
+        stat = self.get(name)
+        if stat:
+            stat.name = name
+            stat.number = number
+            db.session.commit()
+
+    def increment(self, name: str):
+        """Increment the number for an existing stat by one"""
+        stat = self.get(name)
+        if stat:
+            stat.name = name
+            stat.number += 1
+            db.session.commit()
+
+    def delete(self, name: str):
+        """Delete a stat."""
+        stat = self.get(name)
+        if stat:
+            db.session.delete(stat)
+            db.session.commit()
+
+db_manager = Database()  # Create a database manager instance
+
+#==============================
+#   Database Routing
+#==============================
+
+# Initialize database
+@app.before_request
+def setup():
+    with app.app_context():
+        db.create_all()
+        if not db_manager.get():  # If database is empty, add a sample entry
+            db_manager.create("gamesStarted", 0)
+            db_manager.create("gamesWon", 0)
+            db_manager.create("guessesMade", 0)
+            db_manager.create("guessesHit", 0)
+            db_manager.create("guessesMissed", 0)
+
+            print("Database initialized!")
+
+# Reset the database
+@app.route('/reset-db', methods=['GET', 'POST'])
+def reset_db():
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        print("Database reset: success!")
+    return "Database has been reset!", 200
+
+#==============================
 # Basic Routing
 #==============================
+
 # serve our index.html page when you go to the root page
 @app.get("/")
 def index():
@@ -63,20 +171,22 @@ def lobby(lobby):
 def stats():
     return render_template("stats.html")
 
-@app.get("get_stat/<statName>")
+@app.get("/get_stat/<statName>")
 def get_stat(statName):
+
+    # took the jsonify logic from https://www.reddit.com/r/flask/comments/vll4xu/comment/idwhc92/
     if(statName == "started"):
-        return 5, 200
+        return (jsonify(db_manager.get("gamesStarted")), 200)
     elif(statName == "won"):
-        return 100, 200
+        return (jsonify(db_manager.get("gamesWon")), 200)
     elif(statName == "made"):
-        return 1000, 200
+        return (jsonify(db_manager.get("guessesMade")), 200)
     elif(statName == "hit"):
-        return 500, 200
+        return (jsonify(db_manager.get("guessesHit")), 200)
     elif(statName == "missed"):
-        return 500, 200
+        return (jsonify(db_manager.get("guessesMissed")), 200)
     else:
-        return "Invalid option", 405
+        return "Invalid stat name", 405
 
 
 # ===============================
@@ -148,11 +258,7 @@ def handleJoin(lobby):
         print("after this join request, we have this many usersConnected:", lobbiesData[lobby]["usersConnected"])
         # if we're now full, send a fullLobby message to both clients in the lobby
         if lobbiesData[lobby]["usersConnected"] == 2:
-            emit('fullLobby', to=lobby, broadcast=True)
-
-            # when we start our game, we pass it the name of the lobby, 
-            # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
-            game.create_game(lobby, lobbiesData[lobby]["user1RoomCode"], lobbiesData[lobby]["user2RoomCode"])
+            createGame(lobby)
     else:
         # emit a failed join request with no ID and no lobby.
         emit('join', (0, 0))
@@ -166,6 +272,17 @@ def handleJoin(lobby):
 #   - we MAY be able to just place these in game.py, but we'd need to find a way to comfortably pass socketio to that file
 # =============================
 
+def createGame(lobbyName):
+    """
+    Initialize a game in a lobby. This is the moment where stats recognize a game as "starting"
+    """
+    emit('fullLobby', to=lobbyName, broadcast=True)
+
+    db_manager.increment("gamesStarted")
+
+    # when we start our game, we pass it the name of the lobby, 
+    # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
+    game.create_game(lobbyName, lobbiesData[lobbyName]["user1RoomCode"], lobbiesData[lobbyName]["user2RoomCode"])
 """
 Responds to each player submitting their map. Sets up the game's internal representation of their map
 """
@@ -190,41 +307,45 @@ ship/hit maps.
 """
 @socketio.on("guess")
 def handleGuess(lobbyName, id, coords):
+    db_manager.increment("guessesMade")
+
     success = game.handleGuess(lobbyName, id, coords)
+    if success:
+        db_manager.increment("guessesHit")
+    else:
+        db_manager.increment("guessesMissed")
+
     game.checkForDestroyedShips(lobbyName)
 
-    if success:
-        # grab the room ID's for both players, so we can send them a message alone
-        user1Code = game.getRoomCode(lobbyName, 1)
-        user2Code = game.getRoomCode(lobbyName, 2)
+    # grab the room ID's for both players, so we can send them a message alone
+    user1Code = game.getRoomCode(lobbyName, 1)
+    user2Code = game.getRoomCode(lobbyName, 2)
 
-        # this naming is confusing. 
-            # the first rerender is rendering your hitMap to your opponentMap element
-            # the second rerender is rendering your opponent's hitMap to your selfMap, which is why it's called "ship"
-            # which is why we can pass the same map to both of them
+    # this naming is confusing. 
+        # the first rerender is rendering your hitMap to your opponentMap element
+        # the second rerender is rendering your opponent's hitMap to your selfMap, which is why it's called "ship"
+        # which is why we can pass the same map to both of them
 
-        if id == 1:
-            map = json.dumps(game.getHitMap(lobbyName, 1))
-            emit("rerender", ("hit", map), to=user1Code)
-            emit("rerender", ("ship", map), to=user2Code)
-            # switch turns to user 2
-            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
-            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
+    if id == 1:
+        map = json.dumps(game.getHitMap(lobbyName, 1))
+        emit("rerender", ("hit", map), to=user1Code)
+        emit("rerender", ("ship", map), to=user2Code)
+        # switch turns to user 2
+        emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
+        emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
-        elif id == 2:
-            map = json.dumps(game.getHitMap(lobbyName, 2))
-            emit("rerender", ("hit", map), to=user2Code)
-            emit("rerender", ("ship", map), to=user1Code)
-            # switch turns to user 1
-            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player1"].getUserCode())
-            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player2"].getUserCode())
+    elif id == 2:
+        map = json.dumps(game.getHitMap(lobbyName, 2))
+        emit("rerender", ("hit", map), to=user2Code)
+        emit("rerender", ("ship", map), to=user1Code)
+        # switch turns to user 1
+        emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player1"].getUserCode())
+        emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
-        else:
-            raise Exception("received an id that was neither 1 or 2")
-
-        checkForVictory(lobbyName)
     else:
-        print("game.py failed to handle guess")
+        raise Exception("received an id that was neither 1 or 2")
+
+    checkForVictory(lobbyName)
 
 
 """
@@ -260,6 +381,8 @@ def checkForVictory(lobbyName):
         # send a victory message with the winner's id as the content
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player1"].getUserCode())
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player2"].getUserCode())
+        
+        db_manager.increment("gamesWon")
 
 # ===========================
 #   Weird stuff to make this work in a way we never use

@@ -12,3 +12,21 @@
     </ul>
     <a href="/">Back to the homepage</a>
 </body>
+
+<!-- This is a quick test to see if the databse is created and accessible correctly -->
+<script>
+let stats = ["started", "won", "made", "hit", "missed"];
+
+async function poopFart() {
+    for(let i=0; i<5; i++) {
+        let stat = stats[i]
+        console.log(stat);
+        console.log("/get_stat/"+stat);
+        let response = await fetch("/get_stat/"+stat);
+        let json = await response.json();
+        console.log(json.number)
+    }
+}
+
+poopFart()
+</script>

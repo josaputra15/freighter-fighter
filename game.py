@@ -189,6 +189,8 @@ def handleGuess(lobbyName, id, coords):
     """
     Updates the server's internal representation of a hit map based on a player's guess.
     If any ships are hit, we check both boards to see if we need to update our destroyed icons
+
+    Returns True if the shot hit, and False if it didn't
     """
     print("handling a guess in lobby:", lobbyName)
     # if its user 1, check user 2's ship map for something, then update accordingly
@@ -198,9 +200,10 @@ def handleGuess(lobbyName, id, coords):
         if ship != 0:
             GAMES[lobbyName]["player1"].hit_map[coords] = 98
             ship.hit()
+            return True
         else:
             GAMES[lobbyName]["player1"].hit_map[coords] = 97
-        return True
+            return False
 
     # if its user 2, check user 1's ship map for something, then update accordingly
     elif id == 2:
@@ -208,9 +211,10 @@ def handleGuess(lobbyName, id, coords):
         if ship != 0:
             GAMES[lobbyName]["player2"].hit_map[coords] = 98
             ship.hit()
+            return True
         else:
             GAMES[lobbyName]["player2"].hit_map[coords] = 97
-        return True
+            return False
     
     # if the id is fucked, everything is broken
     else:
