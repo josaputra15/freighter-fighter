@@ -39,6 +39,14 @@ const ASSET_PATH = "static/assets/";
 //      SOCKET RESPONSES
 //////////////////////////////////////////
 
+/**
+ * Closes the room. Removes the socket from the room, and redirects you to the main page. Should also probably show an alert
+ */
+socket.on("closeRoom", () => {
+    console.log("room closed");
+    alert("You or your opponent disconnected from the room. Redirecting back to the home page");
+    window.location.pathname = "/";
+})
 
 /**
  * Check whether there is room in the lobby. Join and create our ID if there is, fail if not

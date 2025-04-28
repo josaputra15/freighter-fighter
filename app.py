@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from random import random
 from flask import Flask, jsonify, render_template, request
-from flask_socketio import SocketIO, emit, join_room, rooms, leave_room
+from flask_socketio import SocketIO, close_room, emit, join_room, rooms, leave_room
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -219,11 +219,19 @@ def handleDisconnect():
         # so we can't just leave the first room in its list - we have to make sure its actually the key for our lobby
     for roomName in roomDetails:
         if roomName in lobbiesData.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
-            lobbiesData[roomName]["usersConnected"] -= 1
-            leave_room(roomName)
-            print("disconnected from", roomName)
 
-    # TODO: make this do stuff based on the disconnection. close the room, save the data, etc?
+            # kick out both players
+            emit("closeRoom", to=roomName, broadcast=True)
+
+            # reset the attributes for the lobby
+            createLobby(roomName)
+
+            # close the room
+            close_room(roomName)
+
+            # delete game from GAMES
+            game.deleteGame(roomName)
+
     if len(roomDetails) == 1:
         print("disconnected from index")
 
