@@ -26,6 +26,8 @@ const placementMap = [
 let shipToPlace = 0;
 // Where the user has said they want to place a ship. -1 means nothing is currently being placed.
 let placementIndex = -1;
+// What the user currently has highlighted/selected. Can be moved with arrows, and placed with enter. For keyboard accessibility.
+let selectedTile = -1
 
 
 
@@ -51,43 +53,69 @@ function deactivateUnused(arrayMap, mapElement){
 /**
  * Removes the ship from the placement source and half-places it
  * onto the actual gameboard.
+ * 
+ * @param {*} shipEvent Either an event from a tile being clicked, or an integer representing the selected ship.
  */
-function prepareShip(event){
-    let shipIndex = getShipFromClick(event);
+function prepareShip(shipEvent){
+    let shipID;
+    // If it's from a click event (as opposed to a number)
+    if(typeof shipEvent === "object"){
+        shipID = getShipFromClick(shipEvent);
+    } else {
+        shipID = shipEvent;
+    }
     // If we have a ship "picked up" and click back on the placement source, this puts it back there.
     if(shipToPlace !== 0){
         returnShipToSource();
-        if(shipIndex === 0)
+        if(shipID === 0)
             return;
     }
 
-    shipToPlace = shipIndex;
     // remove it from the source
     for(let i = 0; i < shipSourceMap.length; i++){
-        if(shipSourceMap[i] === shipIndex){
+        if(shipSourceMap[i] === shipID){
             shipSourceMap[i] = 0;
         }
     }
-    activateBoard();
+    makeShipReady(shipID);
     rerender(shipSourceMap, "shipSource");
 }
 
 /**
- * Removes the ship from the gameboard and half-places it back.
+ * Removes the ship from the placement and half-places it back.
+ * 
+ * @param {*} shipEvent Either an event from a tile being clicked, or an integer representing the selected ship.
  */
-function moveShip(event){
-    let shipIndex = getShipFromClick(event);
-    shipToPlace = shipIndex;
+function moveShip(shipEvent){
+    let shipID;
+    // If it's from a click event (as opposed to a number)
+    if(typeof shipEvent === "object"){
+        shipID = getShipFromClick(shipEvent);
+    } else {
+        shipID = shipEvent;
+    }
     // Remove it from the placement board
     for(let i = 0; i < placementMap.length; i++){
-        if(placementMap[i] === shipIndex){
+        if(placementMap[i] === shipID){
             placementMap[i] = 0;
         }
     }
-    activateBoard();
-    // TODO: As a stretch thing, maybe add a way to re-add the ship to the source board.
+    makeShipReady(shipID);
     deactivateEntireBoard("shipSource");
     rerender(placementMap, "placementBoard");
+}
+
+/**
+ * moveShip() is for ships that were already placed. prepareShip() is
+ * for ships coming from the source. The function is to make a ship placible
+ * after you've handled those specific things.
+ * 
+ * @param {int} shipID The number representing the ship that's being dealt with
+ */
+function makeShipReady(shipID){
+    selectedTile = 44;
+    shipToPlace = shipID;
+    activateBoard();
 }
 
 /**
@@ -184,11 +212,12 @@ function startPlacement(clicked){
     let valid = getValidSpots(clicked);
     if(valid.length === 0){ // No valid spots
         alert("You can't place a ship starting in that tile");
-        returnShipToSource();
-        resetPlacement();
+        selectNothing();
         return;
     }
+    removeAllHighlights();
     highlightPlacementTiles(valid);
+    highlight2PlacementTiles([clicked]);
     deactivateInvalidPlacementTiles();
 }
 
@@ -240,13 +269,48 @@ function highlightPlacementTiles(toHighlight){
 }
 
 /**
- * Removes all highlights from the placement board AND deactivates those tiles from clickability.
+ * Highlight2s any tiles specified by toHighlight in the placement board.
+ * These are the second color and aren't necessarily clickable. Used for 
+ * keyboard accessibility.
+ */
+function highlight2PlacementTiles(toHighlight){
+    let tiles = document.getElementById("placementBoard").children;
+    for(let i = 0; i < tiles.length; i++){
+        if(toHighlight.includes(i)){
+            tiles[i].classList.add("highlighted2");
+        }
+    }
+}
+
+/**
+ * Removes all highlights of all types from the placement board.
+ */
+function removeAllHighlights(){
+    let tiles = document.getElementById("placementBoard").children;
+    for(let i = 0; i < tiles.length; i++){
+        tiles[i].classList.remove("highlighted");
+        tiles[i].classList.remove("highlighted2");
+    }
+}
+
+/**
+ * NOT THE SAME AS THE OLD removeHighlights()!!!!!
+ * Removes purple/primary highlights from the placement board.
  */
 function removeHighlights(){
     let tiles = document.getElementById("placementBoard").children;
     for(let i = 0; i < tiles.length; i++){
         tiles[i].classList.remove("highlighted");
-        tiles[i].classList.add("inactive");
+    }
+}
+
+/**
+ * Removes highlight2s from the placement board.
+ */
+function removeHighlight2s(){
+    let tiles = document.getElementById("placementBoard").children;
+    for(let i = 0; i < tiles.length; i++){
+        tiles[i].classList.remove("highlighted2");
     }
 }
 
@@ -310,7 +374,7 @@ function getValidSpots(clicked){
 
 /**
  * Called after the user clicks the second tile they want the ship to be at.
- * @param {Integer} clicked The index of the tile the user has clicked
+ * @param {int} clicked The index of the tile the user has clicked
  */
 function finishPlacement(clicked){
     let length = getShipLengthFromId(shipToPlace);
@@ -340,11 +404,41 @@ function finishPlacement(clicked){
         }
     }
 
-    removeHighlights();
+    removeAllHighlights();
     resetActivations();
     rerender(placementMap, "placementBoard");
     resetPlacement();
     tryReadyButton();
+}
+
+/**
+ * Checks if the arrow direction is valid, and then places the ship if it is.
+ * 
+ * @param {int} direction [Up, down, left, right] -> [0, 1, 2, 3] 
+ */
+function finishPlacementWithKb(direction){
+    // TODO: (If there's extra time): This is incredibly inefficient implementation!
+    // In this process, getValidSpots is called several times, and the up/down/left/right
+    // checks happen several times too.
+    valid = getValidSpots(placementIndex);
+    switch(direction){
+        case 0:
+            if(valid.includes(placementIndex - 10))
+                finishPlacement(placementIndex - 10);
+            break;
+        case 1:
+            if(valid.includes(placementIndex + 10))
+                finishPlacement(placementIndex + 10);
+            break;
+        case 2:
+            if(valid.includes(placementIndex - 1))
+                finishPlacement(placementIndex - 1);
+            break;
+        case 3:
+            if(valid.includes(placementIndex + 1))
+                finishPlacement(placementIndex + 1);
+            break;
+    }
 }
 
 /**
@@ -366,6 +460,7 @@ function tryReadyButton(){
  * regardless of whether or not placement was valid
  */
 function resetPlacement(){
+    selectedTile = -1;
     placementIndex = -1;
     shipToPlace = 0;
 }
@@ -392,6 +487,160 @@ function disableReadyButton(){
 
 function enableReadyButton(){
     readyButton.disabled = false;
+}
+
+function handleKbControls(event){
+    // https://www.w3schools.com/js/js_switch.asp
+    // https://stackoverflow.com/questions/8916620/disable-arrow-key-scrolling-in-users-browser
+    switch(event.key) {
+        case "ArrowUp":
+            event.preventDefault();
+            handleArrowPress(0);
+            break;
+        case "ArrowDown":
+            event.preventDefault();
+            handleArrowPress(1);
+            break;
+        case "ArrowLeft":
+            event.preventDefault();
+            handleArrowPress(2);
+            break;
+        case "ArrowRight":
+            event.preventDefault();
+            handleArrowPress(3);
+            break;
+        case "1":
+            pickupShipFromKb(1);
+            break;
+        case "2":
+            pickupShipFromKb(2);
+            break;
+        case "3":
+            pickupShipFromKb(3);
+            break;
+        case "4":
+            pickupShipFromKb(4);
+            break;
+        case "5":
+            pickupShipFromKb(5);
+            break;
+        case "Escape":
+            selectNothing();
+            break;
+        case "Enter":
+            if(event.ctrlKey){
+                if(!readyButton.disabled)
+                    finishSetup();
+            } else {
+                // To prevent it from getting angry at trying to place a ship that doesn't exist
+                if(shipToPlace !== 0)
+                    startPlacement(selectedTile);
+            }
+            break;
+        default:
+            console.log(event.key);
+    }
+}
+
+/**
+ * Given a number, this function decides how to handle the placement
+ * of that ship.
+ * @param {int} selectedShip The ID of the ship that you want to move. 
+ */
+function pickupShipFromKb(selectedShip){
+    selectNothing();
+    let index = 5-selectedShip;
+
+    // If it's still in the placement map
+    if(shipSourceMap[index] !== 0){
+        prepareShip(selectedShip);
+    } else { // If it was on the placement board
+        moveShip(selectedShip);
+    }
+}
+
+/**
+ * Decides whether an arrow input should be moving the selection or finishing a ship
+ * placement, and calls the appropriate function.
+ * @param {int} direction [Up, down, left, right] -> [0, 1, 2, 3]
+ */
+function handleArrowPress(direction){
+    // If we're not placing anything, do nothing
+    if(shipToPlace === 0)
+        return;
+    // If we're figuring out where to start placement
+    if(placementIndex === -1)
+        moveSelectedTile(direction);
+    // If we're finishing placement
+    else{
+        finishPlacementWithKb(direction);
+    }
+}
+
+/**
+ * Responds to keyboard input to move and highlight the currently selected
+ * tile for ship placement, referencing the global variable selectedTile
+ * 
+ * @param {int} direction [Up, down, left, right] -> [0, 1, 2, 3]
+ */
+function moveSelectedTile(direction){
+    let destination;
+    switch(direction){
+        case 0:
+            destination = selectedTile - 10;
+            break;
+        case 1:
+            destination = selectedTile + 10;
+            break;
+        case 2:
+            destination = selectedTile - 1;
+            break;
+        case 3:
+            destination = selectedTile + 1;
+            break;
+        default:
+            alert("ERROR: A number not corresponding to up, down, left, or right was used in moveSelectedTile()");
+            return;
+    }
+
+    // If they try to move it out of bounds...
+    if(destination < 0 || destination > 99){
+        return;
+    }
+    selectedTile = destination;
+    removeHighlight2s();
+    highlight2PlacementTiles([selectedTile]);
+}
+
+/**
+ * Returns the currently selected ship (as defined by the global variable 'shipToPlace')
+ * to shipSourceMap, WITHOUT resetting the entire process.
+ */
+function returnSelectedToSource(){
+    if(shipToPlace === -1)
+        return;
+    let index = 5 - shipToPlace;
+    let length = getShipLengthFromId(shipToPlace);
+    for(let i = index; i < 5*length; i = i+5){
+        shipSourceMap[i] = shipToPlace;
+    }
+}
+
+/**
+ * Resets the entire selection process.
+ * 
+ * In greater detail:
+ * Puts any currently selected ship into the ship placement source.
+ * Sets variables which track the placement progress back to their defaults.
+ * Rerenders both boards and properly sets their activation status.
+ */
+function selectNothing(){
+    returnSelectedToSource();
+    resetPlacement();
+    removeAllHighlights();
+    rerender(shipSourceMap, "shipSource");
+    rerender(placementMap, "placementBoard");
+    resetActivations();
 }
 
 /**
@@ -422,6 +671,10 @@ function finishSetup(event){
 // set up ready button
 readyButton.addEventListener("click", finishSetup);
 disableReadyButton();
+
+// Keyboard event listener
+// https://markaicode.com/how-to-detect-keyboard-key-presses-in-javascript/
+document.addEventListener("keydown", handleKbControls);
 
 // generate ship source
 for(let i = 0; i < 25; i++) {

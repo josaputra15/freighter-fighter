@@ -122,3 +122,9 @@ h1 {
 .highlighted {
     background-color: purple;
 }
+
+/* To be used 1) for the center of a placement and 2) to choose the direction of a keyboard placement 
+This should be after highlighted so that it can override the color, but we still use highlighted for clickable tiles */
+.highlighted2 {
+    background-color: aquamarine;
+}
