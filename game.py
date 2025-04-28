@@ -160,6 +160,17 @@ def getRoomCode(lobbyName, id):
     else:
         raise Exception("received an ID that was neither 1 or 2")
     
+def deleteGame(lobbyName):
+    """
+    Deletes a game from the game storage. Resets all the maps and stuff.
+
+    Returns True if there was a game to delete, and False if there wasn't
+    """
+    if GAMES[lobbyName]:
+        GAMES[lobbyName] = None
+        return True
+    return False
+
 # =====================================
 #   Socket Callbacks
 #   - called by app.py
