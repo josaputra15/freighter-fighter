@@ -679,6 +679,9 @@ function finishSetup(event){
     // show gameboard, hide placement
     document.getElementById("status").innerText = "Waiting for opponent to finish placing their ships";
 
+    // disable keyboard shortcuts for placement
+    document.removeEventListener("keydown", handleKbControls);
+
     // Note: These can be edited in client.
     // TODO: (As a final polish thing) Make sure the user still can't do anything with old elements if they use inspect
     document.getElementById("placement").classList.add("hide");

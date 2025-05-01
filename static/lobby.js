@@ -32,6 +32,8 @@ var socket = io();
 const LOBBY_NAME = Number(window.location.pathname[1]);
 var USER_ID;
 const ASSET_PATH = "static/assets/";
+// Tracks which tile is being highlighted for keyboard controls
+var tileToGuess = 44;
 
 
 
@@ -125,11 +127,13 @@ socket.on("turnUpdate", (id) => {
         console.log("my turn!")
         document.getElementById("status").innerText = "It's your turn to guess";
         enableGuessing()
+        document.addEventListener("keydown", handleKbGuesses);
     }
     else {
         // it's not my turn - deactive opponent map and update the ticker
         document.getElementById("status").innerText = "Waiting for your opponent to guess";
         disableGuessing()
+        document.removeEventListener("keydown", handleKbGuesses);
         console.log("not my turn :(")
     }
 })
@@ -297,6 +301,7 @@ function guess(index) {
     // find the tile element
     let tile = document.getElementById("opponentMap").children[index]
     tile.classList.add("guessed");
+    tile.classList.remove("highlighted2");
 
     // emit a guess request with id & slot
     // the callback to this request is a new map which we rerender onto opponentMap
@@ -328,6 +333,76 @@ function disableGuessing() {
     for(let i=0; i < 100; i++) {
         let tile = tileList[i]
         tile.classList.add("inactive");
+    }
+}
+
+/**
+ * Routes keyboard input to its corresponding function
+ */
+function handleKbGuesses(event){
+    switch(event.key){
+        case "ArrowUp":
+            event.preventDefault();
+            onArrow(0);
+            break;
+        case "ArrowDown":
+            event.preventDefault();
+            onArrow(1);
+            break;
+        case "ArrowLeft":
+            event.preventDefault();
+            onArrow(2);
+            break;
+        case "ArrowRight":
+            event.preventDefault();
+            onArrow(3);
+            break;
+        case "Enter":
+            onEnter();
+            break;
+    }
+}
+
+/**
+ * Moves and highlights the currently selected tile to make a guess in
+ * @param {int} direction [Up, down, left, right] -> [0, 1, 2, 3]
+ */
+function onArrow(direction){
+    let destination;
+    switch(direction){
+        case 0:
+            destination = tileToGuess - 10;
+            break;
+        case 1:
+            destination = tileToGuess + 10;
+            break;
+        case 2:
+            destination = tileToGuess - 1;
+            break;
+        case 3:
+            destination = tileToGuess + 1;
+            break;
+    }
+    if(destination < 0 || destination > 99)
+        return;
+    tileToGuess = destination;
+    let boardChildren = document.getElementById("opponentMap").children;
+    // undoubtedly inefficient to loop every time like this :?
+    for(let i=0; i<boardChildren.length; i++){
+        boardChildren[i].classList.remove("highlighted2");
+        if(i === tileToGuess)
+            boardChildren[i].classList.add("highlighted2");
+    }
+
+}
+
+/**
+ * Makes a guess when the enter key is pressed
+ */
+function onEnter(){
+    let boardChildren = document.getElementById("opponentMap").children;
+    if(!boardChildren[tileToGuess].classList.contains("inactive")){
+        guess(tileToGuess);
     }
 }
 
