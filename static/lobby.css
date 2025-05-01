@@ -11,6 +11,13 @@ h1 {
     text-align: center;
 }
 
+#status div {
+    /* https://stackoverflow.com/questions/17973207/how-to-remove-line-break-after-div-in-css */
+    display:inline-block;
+    height: 32px;
+    width: 32px;
+}
+
 #status.main {
     font-size: xx-large;
 }

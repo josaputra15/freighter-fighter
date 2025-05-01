@@ -114,7 +114,7 @@ function moveShip(shipEvent){
  */
 function makeShipReady(shipID){
     selectedTile = 44;
-    shipToPlace = shipID;
+    setShipToPlace(shipID);
     activateBoard();
 }
 
@@ -157,7 +157,7 @@ function returnShipToSource(){
         shipSourceMap[i] = shipToPlace;
     }
 
-    shipToPlace = 0;
+    setShipToPlace(0);
     rerender(shipSourceMap, "shipSource");
     resetActivations();
     disableReadyButton();
@@ -462,7 +462,7 @@ function tryReadyButton(){
 function resetPlacement(){
     selectedTile = -1;
     placementIndex = -1;
-    shipToPlace = 0;
+    setShipToPlace(0);
 }
 
 /**
@@ -641,6 +641,31 @@ function selectNothing(){
     rerender(shipSourceMap, "shipSource");
     rerender(placementMap, "placementBoard");
     resetActivations();
+}
+
+/**
+ * Changes the value of the global variable shipToPlace, which tracks which ship is in the process of being placed.
+ * Also changes the status to show the length of the ship currently being placed.
+ */
+function setShipToPlace(newValue){
+    shipToPlace = newValue;
+    let status = document.getElementById("status");
+    if(newValue === 0){
+        status.innerText = "Place your ships!";
+    } else {
+        let length = getShipLengthFromId(newValue);
+        // Make a little mini map showing the length of the ship
+        let statusMap = [];
+        status.innerText = "";
+        for(let i = 0; i < length; i++){
+            statusMap.push(newValue);
+            let tile = createTile();
+            tile.classList.add("inactive");
+            tile.classList.add("highlighted2");
+            status.appendChild(tile);
+        }
+        rerender(statusMap, "status");
+    }
 }
 
 /**
