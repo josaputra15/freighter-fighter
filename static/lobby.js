@@ -385,15 +385,11 @@ function onArrow(direction){
     }
     if(destination < 0 || destination > 99)
         return;
-    tileToGuess = destination;
-    let boardChildren = document.getElementById("opponentMap").children;
-    // undoubtedly inefficient to loop every time like this :?
-    for(let i=0; i<boardChildren.length; i++){
-        boardChildren[i].classList.remove("highlighted2");
-        if(i === tileToGuess)
-            boardChildren[i].classList.add("highlighted2");
-    }
 
+    let boardChildren = document.getElementById("opponentMap").children;
+    boardChildren[tileToGuess].classList.remove("highlighted2");
+    tileToGuess = destination;
+    boardChildren[tileToGuess].classList.add("highlighted2");
 }
 
 /**
