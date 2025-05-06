@@ -380,6 +380,15 @@ def player_ready(lobbyName):
         emit("all_players_ready", to=game.GAMES[lobbyName]["player1"].getUserCode())
         emit("all_players_ready", to=game.GAMES[lobbyName]["player2"].getUserCode())
 
+"""
+Sends the winner's map to the loser.
+"""
+@socketio.on("send_lost_map")
+def show_loser_map(lobbyName, playerID, map):
+    if(playerID == 1):
+        emit("sent_lost_map", (map, game.getHitMap(lobbyName, 2)), to=game.GAMES[lobbyName]["player2"].getUserCode())
+    else:
+        emit("sent_lost_map", (map, game.getHitMap(lobbyName, 1)), to=game.GAMES[lobbyName]["player1"].getUserCode())
 
 
 def checkForVictory(lobbyName):

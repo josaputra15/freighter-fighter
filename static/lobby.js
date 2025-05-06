@@ -98,7 +98,7 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
     }
     // otherwise we're rendering onto our ship map and need to combine them
     else if(mapType === "ship") {
-        let newMap = combineHitAndShipMap(unpackedMap);
+        let newMap = combineHitAndShipMap(unpackedMap, mainShipMap);
         rerender(newMap, "selfMap");
     }
     else {
@@ -147,20 +147,52 @@ socket.on("victory", (id) => {
     console.log("received a victory message")
     disableGuessing();
     if(id === USER_ID) {
-        document.getElementById("status").innerText = "You won by destroying your opponent's last ship!";
-        console.log("I WON!!!!!!!!!!");
-        alert("You won!");
+        win();
+        socket.emit("send_lost_map", LOBBY_NAME, USER_ID, mainShipMap);
     }
     else {
-        document.getElementById("status").innerText = "You lost because your opponent destroyed your last ship :(";
-        console.log("I LOST :(((((((((((");
-        alert("You lost :(");
+        lose();
     }
 })
+
+socket.on("sent_lost_map", (map, hitMap) => {
+    // Opponent's map: has a number wherever there's a ship. Can be matched with the funny graphics number
+    // call combineHitAndShipMap but with other variables - make map take those args instead of just pulling the global var?
+    let enemyMap = combineHitAndShipMap(hitMap, map);
+    rerender(enemyMap, "opponentMap");
+});
 
 //////////////////////////////////////////
 //      FUNCTION DEFINITIONS
 //////////////////////////////////////////
+
+//TODO: It's really really easy to cheat. Which is nice for debugging...
+function win(){
+    document.getElementById("status").innerText = "You won by destroying your opponent's last ship!";
+    document.getElementById("lobbyuser").innerText = "Winner POV";
+    document.getElementById("lobbyuser").classList.add("wincolor");
+    let selfChildren = document.getElementById("selfMap").children
+    let opponentChildren = document.getElementById("opponentMap").children;
+    for(let i = 0; i < selfChildren.length; i++){
+        selfChildren[i].classList.add("wincolor");
+        opponentChildren[i].classList.add("wincolor");
+    }
+    console.log("I WON!!!!!!!!!!");
+}
+
+function lose(){
+    document.getElementById("status").innerText = "You lost because your opponent destroyed your last ship :(";
+    document.getElementById("lobbyuser").innerText = "You Lost";
+    document.getElementById("lobbyuser").classList.add("losecolor");
+    let selfChildren = document.getElementById("selfMap").children
+    let opponentChildren = document.getElementById("opponentMap").children;
+    for(let i = 0; i < selfChildren.length; i++){
+        selfChildren[i].classList.add("losecolor");
+        opponentChildren[i].classList.add("losecolor");
+    }
+
+    console.log("I LOST :(((((((((((");
+}
 
 /*
     Draws the correct icons in each slot of 'mapElement' based on the numbers from 'arrayMap'
@@ -204,14 +236,14 @@ function createTile() {
     
     Returns a 100-long array that is this combination
 */
-function combineHitAndShipMap(hitMap){
+function combineHitAndShipMap(hitMap, shipMap){
     // using this to create an empty array: https://stackoverflow.com/a/45968309
     let newMap = Array.from({length: 100})
 
     for(let i = 0; i < 100; i++) {
         // if the hit map doesn't have anything in that slot, default to our ship map's icon
         if(hitMap[i] === 0) {
-            newMap[i] = mainShipMap[i]
+            newMap[i] = shipMap[i]
         }
         // otherwise use the thing from the hit map
         else {

@@ -135,3 +135,11 @@ This should be after highlighted so that it can override the color, but we still
 .highlighted2 {
     background-color: aquamarine;
 }
+
+.wincolor {
+    background-color: forestgreen;
+}
+
+.losecolor {
+    background-color: red;
+}
