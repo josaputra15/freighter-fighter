@@ -4,5 +4,20 @@ body {
 
 h1 {
     text-align: center;
+    margin-left: 20px;
+    margin-right: 20px;
 }
 
+header {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+}
+
+.navLink {
+    font-size: x-large;
+    color: black;
+    margin-top: auto;
+    margin-bottom: auto;
+}

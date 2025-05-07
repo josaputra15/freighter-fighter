@@ -8,13 +8,6 @@
     grid-template: 25vmin 25vmin 25vmin / 25vmin 25vmin 25vmin;
 }
 
-a {
-    font-size: x-large;
-    color: black;
-    margin-top: auto;
-    margin-bottom: auto;
-}
-
 .lobbySelector {
     padding-top: 10px;
     padding-bottom: 10p;
@@ -33,11 +26,4 @@ a {
 h1 {
     margin-left: 30px;
     margin-right: 30px;
-}
-
-header {
-    display: flex;
-    flex-direction: row;
-    align-content: center;
-    justify-content: center;
 }
