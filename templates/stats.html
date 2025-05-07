@@ -2,44 +2,27 @@
 <head>
     <title>Stats!</title>
     <link rel="stylesheet" href="static/default.css">
+    <link rel="stylesheet" href="static/stats.css">
     <link rel="shortcut icon" href="static/assets/favicon.ico">
+
+    <!-- include our charting library. used in stats.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-     <h1>Lifetime stats for all users!</h1>
-    <ul id="statsList">
-        <li>Games started: <span id="started"></span></li>
-        <li>Games won/ended: <span id="won"></span></li>
-        <li>Total guesses made: <span id="made"></span></li>
-        <li>Number of successful strikes on freighters: <span id="hit"></span></li>
-        <li>Number of unsuccessful strikes on freighers: <span id="missed"></span></li>
-    </ul>
-    <a href="/">Back to the homepage</a>
+    <header>
+        <a class="navLink" href="/">Homepage</a>
+        <h1> Lifetime Website Stats </h1>
+        <a class="navLink" href="rules">Instructions</a>
+    </header>
+    <main>
+        <section>
+            <canvas id="games"></canvas>
+        </section>
+
+        <section>
+            <canvas id="guesses"></canvas>
+        </section>
+    </main>
 </body>
 
-<!-- This is a quick test to see if the databse is created and accessible correctly -->
-<script>
-let stats = ["started", "won", "made", "hit", "missed"];
-
-async function poopFart() {
-    for(let i=0; i<5; i++) {
-        let stat = stats[i];
-        console.log(stat);
-        console.log("/get_stat/"+stat);
-        let response = await fetch("/get_stat/"+stat);
-        let json = await response.json();
-        console.log(json.number);
-    }
-}
-
-poopFart()
-
-async function fetchStats(){
-    for(let i=0; i<stats.length; i++){
-        let response = await fetch("/get_stat/"+stats[i]);
-        let json = await response.json();
-        document.getElementById(stats[i]).innerText = json.number;
-    }
-}
-
-fetchStats();
-</script>
+<script src="static/stats.js" defer></script>
