@@ -47,7 +47,7 @@ var tileToGuess = 44;
 socket.on("closeRoom", () => {
     console.log("room closed");
     alert("You or your opponent disconnected from the room. Redirecting back to the home page");
-    window.location.pathname = "/";
+    window.location.replace("/");
 })
 
 /**

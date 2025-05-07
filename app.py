@@ -210,18 +210,35 @@ def handleConnect(auth):
     print('connected')
 
 
-# socket for managing response to clients leaving the socket
+# socket for managing response to clients leaving the socket. Returns false if it didn't close a lobby
 @socketio.on('disconnect')
 def handleDisconnect():
+    print("received a disconnect")
     roomDetails = rooms()       # check what rooms the socket that sent the message is in
     # we have to do this for loop stuff bc every socket is also part of its own room, 
         # and as far as i can tell, the order of this list isn't confirmed to stay the same all the time
         # so we can't just leave the first room in its list - we have to make sure its actually the key for our lobby
-    for roomName in roomDetails:
-        if roomName in lobbiesData.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
 
+    if len(roomDetails) == 1:
+        print("disconnected from index")
+        return False
+
+    for roomName in roomDetails:
+        print("checking a room name for name:", roomName)
+        if roomName in lobbiesData.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
+            print("started to close a room: ", roomName)
             # kick out both players
             emit("closeRoom", to=roomName, broadcast=True)
+
+            # there may or may not be something super broken with to=room and broadcast, which forces us to do users. i am going to ignore that right now
+            # if it remains broken, this is some fuckery that gets around it
+
+            # getCode returns false if the room doesn't exist, so we just check that they both exist
+            # u1code = game.getRoomCode(roomName, 1)
+            # u2code = game.getRoomCode(roomName, 2)
+            # if u1code or u2code: 
+            #     emit("closeRoom", to=u1code)
+            #     emit("closeRoom", to=u2code)
 
             # reset the attributes for the lobby
             createLobby(roomName)
@@ -231,9 +248,8 @@ def handleDisconnect():
 
             # delete game from GAMES
             game.deleteGame(roomName)
+    return True
 
-    if len(roomDetails) == 1:
-        print("disconnected from index")
 
 
 # ============================

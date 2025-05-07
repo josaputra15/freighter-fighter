@@ -153,6 +153,8 @@ def getHitMap(lobbyName, id):
 Returns the room code for a specific player in a lobby
 """
 def getRoomCode(lobbyName, id):
+    if GAMES.get(lobbyName) == None:
+        return False
     if id == 1:
         return GAMES[lobbyName]["player1"].roomCode
     elif id == 2:
