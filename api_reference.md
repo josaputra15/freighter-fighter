@@ -7,7 +7,7 @@ dict that connects lobby name to lobby properties
 dict with lobby properties and associated values
 
 ## Ship Map
-2d array
+array
 - 0's in empty spaces
 - number for each ship:
     - 2-long is 1
@@ -17,14 +17,14 @@ dict with lobby properties and associated values
 
 
 ## Guess/Hit Map
-2d array
+array
 - 0 in unguessed spaces
 - 97 in missed guesses
 - 98 in hits
 - 99 in destroyed slots
 
 ## UI codes
-- 200 for the ready button
+- 200 for the ready button (unused)
 
 # Functions
 
