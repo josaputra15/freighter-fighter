@@ -166,9 +166,18 @@ socket.on("sent_lost_map", (map, hitMap) => {
 //      FUNCTION DEFINITIONS
 //////////////////////////////////////////
 
+function makeHomeHrefDiv(){
+    let homeRoute = document.createElement("a");
+    homeRoute.href = "/";
+    homeRoute.innerText = "Return to homepage";
+    return homeRoute;
+}
+
 //TODO: It's really really easy to cheat. Which is nice for debugging...
 function win(){
     document.getElementById("status").innerText = "You won by destroying your opponent's last ship!";
+    document.getElementById("status").appendChild(document.createElement("br"));
+    document.getElementById("status").appendChild(makeHomeHrefDiv());
     document.getElementById("lobbyuser").innerText = "Winner POV";
     document.getElementById("lobbyuser").classList.add("wincolor");
     let selfChildren = document.getElementById("selfMap").children
@@ -182,6 +191,8 @@ function win(){
 
 function lose(){
     document.getElementById("status").innerText = "You lost because your opponent destroyed your last ship :(";
+    document.getElementById("status").appendChild(document.createElement("br"));
+    document.getElementById("status").appendChild(makeHomeHrefDiv());
     document.getElementById("lobbyuser").innerText = "You Lost";
     document.getElementById("lobbyuser").classList.add("losecolor");
     let selfChildren = document.getElementById("selfMap").children
