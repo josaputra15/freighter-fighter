@@ -21,3 +21,8 @@ header {
     margin-top: auto;
     margin-bottom: auto;
 }
+
+.embed {
+    height: 16px;
+    width: 16px;
+}

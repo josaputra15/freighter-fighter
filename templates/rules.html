@@ -11,22 +11,50 @@
         <h1> How to Play </h1>
         <a class="navLink" href="/">Homepage</a>
     </header>
+    <!--https://www.w3docs.com/snippets/html/how-to-create-an-anchor-link-to-jump-to-a-specific-part-of-a-page.html-->
+    <nav>
+        <ul>
+            <li><a href="#setupinstr">Setup</a></li>
+            <li><a href="#gameplayinstr">Gameplay</a></li>
+            <li><a href="#keyboardinstr">Keyboard Controls</a></li>
+        </ul>
+    </nav>
     <p>
         You have 5 ships. They are precious. Your opponent also has 5 ships, which are evil
         and must be destroyed. They, however, will seek to destroy <i>your</i> precious 5 ships!
         End them.
     </p>
-    <h2>Setup</h2>
+    <h2 id="setupinstr">Setup</h2>
     <p>
-        Before the game starts, you'll have to place your ships onto the board. Click a ship on the left
-        to pick it up, and then click the squares you want to place it onto on the board on the right.
+        Before the game starts, you'll have to place your ships onto the board. Click a ship on the small board to the left
+        to pick it up. Then, click the square you want to place its endpoint onto on the big board to the right.
+        This will show you where you can place it, as pictured below. Click any of the purple highlighted tiles
+        to finish placing it.</p>
+        <img src="static/assets/instructions/placing_ship.png" alt="A ship in the process of being placed." width="100" height="100">
+        <p>You can press Escape to stop placing the ship. You can also select a ship you've already placed to move it
+        somewhere else.
         Once the game starts, players will take turns. Once it's your turn, click a tile on the rightmost
         board to attack it! That will be your turn. You can see what your opponent has attacked via the
         board on the left.
     </p>
-    <h2>Gameplay</h2>
+    <h2 id="gameplayinstr">Gameplay</h2>
     <p>
-        Sure hope it does :DD:
+        On your turn, click somewhere on the rightmost board, which shows where you've already attacked.
+        If you don't hit anything, that tile will become a <img src="static/assets/miss.svg" alt="missed icon" class="embed">.
+        If you hit a ship, you'll see a <img src="static/assets/hit.svg" alt="hit ship icon" class="embed">.
+        And if you get the final blow on a ship, all of its tiles will turn into <img src="static/assets/destroyed.svg" alt="destroyed ship icon" class="embed">!
+    </p>
+    <h2 id="keyboardinstr">Keyboard Controls</h2>
+    <h3>Ship Placement</h3>
+    <p>Use number keys (1-5) to pick up ships. Use arrows to navigate the placement board. Tiles will be highlighted aqua while
+        selected (<img src="static/assets/instructions/highlighted2.png" alt="selected tile" class="embed">).
+        Press enter to begin placing the ship, and then an arrow to indicate what direction you want it to go.
+        You can press Escape at any time to de-select a ship. Press Ctrl+Enter when you're ready to start the game.
+    </p>
+    <h3>Ingame Controls</h3>
+    <p>Use arrows to navigate your opponent's board. Tiles will be highlighted aqua while selected (<img src="static/assets/instructions/highlighted2.png" alt="selected tile" class="embed">).
+        Press enter
+        to lock in your guess. On your next turn, your keyboard cursor will remain wherever it last was.
     </p>
     <a href="/">Back to the homepage</a>
 </body>
