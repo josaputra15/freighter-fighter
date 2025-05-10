@@ -15,16 +15,12 @@ array
     - 4-long is 4
     - 5-long is 5
 
-
 ## Guess/Hit Map
 array
 - 0 in unguessed spaces
 - 97 in missed guesses
 - 98 in hits
 - 99 in destroyed slots
-
-## UI codes
-- 200 for the ready button (unused)
 
 # Functions
 
