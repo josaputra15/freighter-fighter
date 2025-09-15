@@ -7,10 +7,15 @@ from sqlalchemy import Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 import json
+import logging
 import game
 
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
     # maybe use sessions - which requires a secret key
 
@@ -140,7 +145,7 @@ def setup():
             db_manager.create("guessesHit", 0)
             db_manager.create("guessesMissed", 0)
 
-            print("Database initialized!")
+            logger.info("Database initialized!")
 
 # Reset the database
 @app.route('/reset-db', methods=['GET', 'POST'])
@@ -148,7 +153,7 @@ def reset_db():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        print("Database reset: success!")
+        logger.info("Database reset: success!")
     return "Database has been reset!", 200
 
 #==============================
@@ -207,13 +212,13 @@ def handleExists(lobbyNumber):
 # socket for managing response to clients connecting to the socket
 @socketio.on('connect')
 def handleConnect(auth):
-    print('connected')
+    logger.info('Client connected')
 
 
 # socket for managing response to clients leaving the socket. Returns false if it didn't close a lobby
 @socketio.on('disconnect')
 def handleDisconnect():
-    print("received a disconnect")
+    logger.info("Client disconnected")
     roomDetails = rooms()       # check what rooms the socket that sent the message is in
     # we have to do this for loop stuff bc every socket is also part of its own room, 
         # and as far as i can tell, the order of this list isn't confirmed to stay the same all the time
@@ -259,7 +264,7 @@ def handleDisconnect():
 # manage connections to a specific lobby
 @socketio.on('join')
 def handleJoin(lobby):
-    print("responding to a join message from lobby", lobby)
+    logger.info(f"Client attempting to join lobby {lobby}")
     # do another check to see if the lobby is full already
     if lobbiesData[lobby]["usersConnected"] <  2:
         clientRoomCode = rooms()[0]
@@ -281,7 +286,7 @@ def handleJoin(lobby):
         # send a join success back to the request
         emit('join', (1, id))
 
-        print("after this join request, we have this many usersConnected:", lobbiesData[lobby]["usersConnected"])
+        logger.info(f"Lobby {lobby} now has {lobbiesData[lobby]['usersConnected']} users connected")
         # if we're now full, send a fullLobby message to both clients in the lobby
         if lobbiesData[lobby]["usersConnected"] == 2:
             createGame(lobby)
@@ -322,9 +327,9 @@ def handleInitialMaps(lobbyName, id, ship_map):
         # send a copy of this player's hit_map to both players
         # map = json.dumps(game.getHitMap(lobbyName, id))
         # emit('rerender', map, to=lobbyName)
-        print("handled an initial map")
+        logger.info("Successfully handled initial ship map")
     else:
-        print("game.py failed to handle initial maps")
+        logger.error("Failed to handle initial ship map")
     # TODO: Tell someone that it's their move
 
 """

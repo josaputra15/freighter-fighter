@@ -37,3 +37,144 @@ The project uses Flask for the back-end, and most client-server communication ha
 ## Notes
 
 This project lives [on GitHub](https://github.com/ZermbaGerd/comp446-battleship) and might not render correctly on third-party websites.
+
+## Google Cloud Platform Deployment
+
+This section documents the process of deploying Freighter Fighter to Google Cloud Run, including the challenges encountered and lessons learned.
+
+### Deployment Process
+
+The deployment was accomplished through the following steps:
+
+#### 1. **Prerequisites Setup**
+- Installed and authenticated Google Cloud CLI
+- Enabled required APIs: Cloud Build, Cloud Run, and Container Registry
+- Set up project configuration (`mailswiper-backend-demo`)
+
+#### 2. **Docker Configuration**
+- Created `wsgi.py` entry point for production deployment
+- Updated `Dockerfile` with proper configuration for Cloud Run
+- Configured environment variables (`FLASK_ENV=production`, `PORT=8080`)
+- Added timeout settings for WebSocket connections
+
+#### 3. **Build and Deploy**
+```bash
+# Build and push Docker image using Cloud Build
+gcloud builds submit --tag gcr.io/mailswiper-backend-demo/battleship-game .
+
+# Deploy to Cloud Run
+gcloud run deploy battleship-game \
+  --image gcr.io/mailswiper-backend-demo/battleship-game \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080 \
+  --memory 1Gi \
+  --cpu 1 \
+  --timeout 300
+```
+
+#### 4. **Live Application**
+- **URL**: https://battleship-game-qalpnpjyha-uc.a.run.app
+- **Status**: Successfully deployed and operational
+- **Features**: All multiplayer functionality working with WebSocket support
+
+### Challenges Encountered
+
+#### 1. **Missing WSGI Entry Point**
+- **Problem**: Original deployment configs referenced `wsgi.py` which was deleted
+- **Solution**: Created new `wsgi.py` file with proper Flask-SocketIO configuration
+- **Lesson**: Always maintain deployment entry points when refactoring
+
+#### 2. **WebSocket Support Configuration**
+- **Problem**: Ensuring WebSocket connections work properly in production
+- **Solution**: Used Eventlet worker class with Gunicorn and proper timeout settings
+- **Lesson**: WebSocket applications require specific server configurations
+
+#### 3. **Docker Image Optimization**
+- **Problem**: Initial builds were slow and inefficient
+- **Solution**: Used Google Cloud Build for faster, more reliable builds
+- **Lesson**: Cloud-native build services often outperform local Docker builds
+
+#### 4. **Memory and Resource Allocation**
+- **Problem**: Determining appropriate resource limits for the application
+- **Solution**: Started with 1Gi memory and 1 CPU, monitoring performance
+- **Lesson**: Start conservative and scale based on actual usage patterns
+
+### Pros and Cons
+
+#### **Pros of Google Cloud Run Deployment**
+
+ **Serverless Architecture**
+- No server management required
+- Automatic scaling based on traffic
+- Pay only for actual usage
+
+ **Easy Deployment**
+- Simple Docker-based deployment
+- Integrated with Google Cloud ecosystem
+- Excellent CLI tooling
+
+ **WebSocket Support**
+- Native support for WebSocket connections
+- Perfect for real-time multiplayer games
+- No additional configuration needed
+
+ **Cost Effective**
+- Generous free tier (2M requests/month)
+- No idle costs when not in use
+- Predictable pricing model
+
+ **Global Availability**
+- Automatic HTTPS with custom domains
+- Global CDN integration
+- Low latency worldwide
+
+#### **Cons of Google Cloud Run Deployment**
+
+ **Cold Start Latency**
+- First request after inactivity can be slow
+- May affect user experience for infrequent users
+- Can be mitigated with minimum instances
+
+ **Request Timeout Limits**
+- Maximum 60 minutes per request
+- May not be suitable for very long-running processes
+- WebSocket connections count as long-running requests
+
+ **Vendor Lock-in**
+- Tied to Google Cloud ecosystem
+- Migration to other platforms requires reconfiguration
+- Learning curve for Google Cloud services
+
+ **Resource Constraints**
+- Limited to 8GB RAM and 4 CPUs per instance
+- May not scale for extremely high-traffic applications
+- Memory limits can affect database operations
+
+ **Debugging Complexity**
+- Serverless debugging can be more challenging
+- Logs are distributed and time-limited
+- Less control over the underlying infrastructure
+
+### Alternative Deployment Options
+
+For comparison, other viable deployment options include:
+
+- **Railway**: Simpler setup, good for beginners
+- **Heroku**: Traditional PaaS, easy deployment
+- **DigitalOcean App Platform**: Middle ground between simplicity and control
+- **AWS ECS/Fargate**: More complex but highly scalable
+- **Self-hosted VPS**: Maximum control but requires server management
+
+### Recommendations
+
+For this Battleship game project, Google Cloud Run is an excellent choice because:
+
+1. **Real-time Requirements**: WebSocket support is crucial for multiplayer gameplay
+2. **Traffic Patterns**: Games have variable traffic, perfect for serverless scaling
+3. **Cost Efficiency**: Free tier covers development and moderate usage
+4. **Ease of Use**: Simple deployment process suitable for academic projects
+5. **Future Scalability**: Can easily handle growth in user base
+
+The deployment successfully demonstrates modern cloud-native application deployment practices while maintaining the real-time multiplayer functionality essential to the game's core experience.

@@ -15,6 +15,9 @@ For now, game.py will assume that the players will only send valid moves. Gamest
 
 from flask_socketio import emit
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
     ######################### Objects #########################
 
@@ -121,7 +124,7 @@ GAMES = {}
 Creates a set of objects associated with a game, and associates them with a lobbyName in our collection of games
 """
 def create_game(lobbyName, user1RoomCode, user2RoomCode):
-    print("just created a room with name:", lobbyName)
+    logger.info(f"Created new game room: {lobbyName}")
     GAMES[lobbyName] = {}
     GAMES[lobbyName]["player1"] = Player(1, user1RoomCode)
     GAMES[lobbyName]["player2"] = Player(2, user2RoomCode)
@@ -205,7 +208,7 @@ def handleGuess(lobbyName, id, coords):
 
     Returns True if the shot hit, and False if it didn't
     """
-    print("handling a guess in lobby:", lobbyName)
+    logger.info(f"Processing guess in lobby {lobbyName} at coordinates {coords}")
     # if its user 1, check user 2's ship map for something, then update accordingly
     if id == 1:
         ship = GAMES[lobbyName]["player2"].ship_map[coords]
