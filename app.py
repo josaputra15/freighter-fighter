@@ -9,6 +9,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 import json
 import logging
 import game
+import os
+
 
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
@@ -430,6 +432,6 @@ def checkForVictory(lobbyName):
 
 # run the server when you run this file
 if (__name__ == '__main__'):
-    port = int(os.environ.get("PORT", 8000))   # Railway provides PORT
+    port = int(os.environ.get("PORT", 8000))
     socketio.run(app, host="0.0.0.0", port=port)
     # socketio.run(app)
