@@ -29,4 +29,5 @@ ENV FLASK_ENV=production
 ENV PORT=8080
 
 # Run the application
-CMD exec gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT wsgi:app
+CMD exec gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 wsgi:app
+
