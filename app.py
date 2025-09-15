@@ -430,4 +430,6 @@ def checkForVictory(lobbyName):
 
 # run the server when you run this file
 if (__name__ == '__main__'):
-    socketio.run(app)
+    port = int(os.environ.get("PORT", 8000))   # Railway provides PORT
+    socketio.run(app, host="0.0.0.0", port=port)
+    # socketio.run(app)
