@@ -79,6 +79,21 @@ gcloud run deploy battleship-game \
 - **Status**: Successfully deployed and operational
 - **Features**: All multiplayer functionality working with WebSocket support
 
+
+#### 5. **Monitor Logs**
+```bash
+gcloud run services logs tail battleship-game --region us-central1
+```
+#### 5. **Mapping Region/Domain**
+```bash
+gcloud run services list --region us-central1
+gcloud beta run domain-mappings create \
+  --service battleship-game \
+  --domain battleship.yourdomain.com \
+  --region us-central1
+
+```
+
 ### Challenges Encountered
 
 #### 1. **Missing WSGI Entry Point**
@@ -177,4 +192,17 @@ For this Battleship game project, Google Cloud Run is an excellent choice becaus
 4. **Ease of Use**: Simple deployment process suitable for academic projects
 5. **Future Scalability**: Can easily handle growth in user base
 
+
+
+
+
 The deployment successfully demonstrates modern cloud-native application deployment practices while maintaining the real-time multiplayer functionality essential to the game's core experience.
+
+
+### Primary Sources:
+
+Eby, P. J., et al. (2010). PEP 3333: Python Web Server Gateway Interface v1.0.1. Python Software Foundation. https://peps.python.org/pep-3333/
+Fette, I., & Melnikov, A. (2011). RFC 6455: The WebSocket Protocol. Internet Engineering Task Force. https://tools.ietf.org/html/rfc6455
+Grinberg, M. (2023). Flask-SocketIO Documentation. https://flask-socketio.readthedocs.io/en/latest/
+Google Cloud (2023). Cloud Run Documentation: Deploying containerized services. https://cloud.google.com/run/docs/deploying
+Docker Inc. (2023). Dockerfile Reference: Best practices for writing Dockerfiles. https://docs.docker.com/develop/dev-best-practices/dockerfile_best-practices/
