@@ -6,7 +6,7 @@ import json
 import game
 
 app = Flask(__name__)
-socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
+socketio = SocketIO(app, async_mode="eventlet") # wrap socketio installation into new name - maybe makes a connection to our app too?
 
     # maybe use sessions - which requires a secret key
 
