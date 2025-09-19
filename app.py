@@ -1,16 +1,12 @@
-from dataclasses import dataclass
 from random import random
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, close_room, emit, join_room, rooms, leave_room
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 import json
 import game
 
 app = Flask(__name__)
-socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
+socketio = SocketIO(app, async_mode="eventlet") # wrap socketio installation into new name - maybe makes a connection to our app too?
 
     # maybe use sessions - which requires a secret key
 
@@ -19,10 +15,6 @@ socketio = SocketIO(app) # wrap socketio installation into new name - maybe make
 # TODO: figure out win conditions
 # TODO: fix lobby creation
 # TODO: close lobbies on disconnects
-
-# TODO: add SQL stuff
-    # this is probably just adding stats to big moments that just add to the sqllite DB
-    # and also this is having a "stats page" linked from index that just shows those stats
 
 # TODO: make the site a lot prettier
 
@@ -50,108 +42,6 @@ createLobbies()
 
 
 #==============================
-#   Database Set-Up - pretty much stole this from HW3
-#==============================
-
-# Configure Database
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///stats.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-# Initialize SQLAlchemy with Declarative Base
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
-db.init_app(app)
-
-
-# Define the Stat model using `Mapped` and `mapped_column`
-# also make it a dataclass so we can easily turn it into json later
-    # took that logic from https://www.reddit.com/r/flask/comments/vll4xu/comment/idwhc92/
-@dataclass
-class Stat(db.Model):
-    __tablename__ = "stats"
-
-    name: Mapped[str] = mapped_column(String(15), primary_key=True)
-    number: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    # main difference from HW3 is that we just use the name as the primary key, because we only need these to fill the
-    # persistent storage requirement, and won't be creating any new items once in deployment. Instead, we just update them to have +1 number whenever necessary
-    def __init__(self, name: str, number: int):
-        self.name = name
-        self.number = number
-
-
-# DATABASE UTILITY CLASS
-class Database:
-    def __init__(self):
-        pass
-
-    def get(self, name: str = None):
-        """Retrieve a specific stat by name. If none passed, returns all stats"""
-        if not name:
-            return db.session.query(Stat).all()
-        return db.session.get(Stat, name)
-
-    def create(self, name: str, number: int):
-        """Create a new stat. Should only be used when inititially creating the """
-        new_stat = Stat(name=name, number=number)
-        db.session.add(new_stat)
-        db.session.commit()
-
-    def update(self, name: str, number: int):
-        """Update an existing stat."""
-        stat = self.get(name)
-        if stat:
-            stat.name = name
-            stat.number = number
-            db.session.commit()
-
-    def increment(self, name: str):
-        """Increment the number for an existing stat by one"""
-        stat = self.get(name)
-        if stat:
-            stat.name = name
-            stat.number += 1
-            db.session.commit()
-
-    def delete(self, name: str):
-        """Delete a stat."""
-        stat = self.get(name)
-        if stat:
-            db.session.delete(stat)
-            db.session.commit()
-
-db_manager = Database()  # Create a database manager instance
-
-#==============================
-#   Database Routing
-#==============================
-
-# Initialize database
-@app.before_request
-def setup():
-    with app.app_context():
-        db.create_all()
-        if not db_manager.get():  # If database is empty, add a sample entry
-            db_manager.create("gamesStarted", 0)
-            db_manager.create("gamesWon", 0)
-            db_manager.create("guessesMade", 0)
-            db_manager.create("guessesHit", 0)
-            db_manager.create("guessesMissed", 0)
-
-            print("Database initialized!")
-
-# Reset the database
-@app.route('/reset-db', methods=['GET', 'POST'])
-def reset_db():
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        print("Database reset: success!")
-    return "Database has been reset!", 200
-
-#==============================
 # Basic Routing
 #==============================
 
@@ -168,27 +58,6 @@ def rules():
 @app.get("/<lobby>")
 def lobby(lobby):
     return render_template("lobby.html", lobbyName=lobby)
-
-@app.get("/stats")
-def stats():
-    return render_template("stats.html")
-
-@app.get("/get_stat/<statName>")
-def get_stat(statName):
-
-    # took the jsonify logic from https://www.reddit.com/r/flask/comments/vll4xu/comment/idwhc92/
-    if(statName == "started"):
-        return (jsonify(db_manager.get("gamesStarted")), 200)
-    elif(statName == "won"):
-        return (jsonify(db_manager.get("gamesWon")), 200)
-    elif(statName == "made"):
-        return (jsonify(db_manager.get("guessesMade")), 200)
-    elif(statName == "hit"):
-        return (jsonify(db_manager.get("guessesHit")), 200)
-    elif(statName == "missed"):
-        return (jsonify(db_manager.get("guessesMissed")), 200)
-    else:
-        return "Invalid stat name", 405
 
 
 # ===============================
@@ -304,8 +173,6 @@ def createGame(lobbyName):
     """
     emit('fullLobby', to=lobbyName, broadcast=True)
 
-    db_manager.increment("gamesStarted")
-
     # when we start our game, we pass it the name of the lobby, 
     # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
     game.create_game(lobbyName, lobbiesData[lobbyName]["user1RoomCode"], lobbiesData[lobbyName]["user2RoomCode"])
@@ -333,13 +200,8 @@ ship/hit maps.
 """
 @socketio.on("guess")
 def handleGuess(lobbyName, id, coords):
-    db_manager.increment("guessesMade")
 
-    success = game.handleGuess(lobbyName, id, coords)
-    if success:
-        db_manager.increment("guessesHit")
-    else:
-        db_manager.increment("guessesMissed")
+    game.handleGuess(lobbyName, id, coords)
 
     game.checkForDestroyedShips(lobbyName)
 
@@ -416,8 +278,6 @@ def checkForVictory(lobbyName):
         # send a victory message with the winner's id as the content
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player1"].getUserCode())
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player2"].getUserCode())
-        
-        db_manager.increment("gamesWon")
 
 # ===========================
 #   Weird stuff to make this work in a way we never use
