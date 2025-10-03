@@ -15,7 +15,7 @@ for (let i=0; i < NUM_LOBBIES; i++) {
 socket.on('exists', (num, available) => {
     // if the room is available, connect to that room
     if(available === 1) {
-        window.location = window.location + num;
+        window.location = window.location + "lobby/" + num;
     }
     else {
         alert("that room is not available");

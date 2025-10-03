@@ -29,9 +29,9 @@ const debugShipMap = [
 ]
 
 var socket = io();
-const LOBBY_NAME = Number(window.location.pathname[1]);
+const LOBBY_NAME = Number(window.location.pathname.split("/")[2]);
 var USER_ID;
-const ASSET_PATH = "static/assets/";
+const ASSET_PATH = "/static/assets/";
 // Tracks which tile is being highlighted for keyboard controls
 var tileToGuess = 44;
 
@@ -108,7 +108,7 @@ socket.on("rerender", (mapType, jsonHitMap) =>{
 
 
 /**
- * Hides the post-placement waiting screen. Shows the gameboard. 
+ * Hides the post-placement waiting screen. Shows the gameboard.
  * We will receive this at the same time as either a 'yourTurn' or 'notYourTurn', and those will determine turn order, not this
  */
 socket.on("all_players_ready", () => {
@@ -214,7 +214,7 @@ function rerender(arrayMap, mapElement) {
 
     // array of all tiles in the element
     let tileList = document.getElementById(mapElement).children;
-    
+
     // for each tile in the element, fill it with the asset it ought to have
     for (let i = 0; i < arrayMap.length; i++) {
         let tileContent = tileList[i].firstChild;
@@ -233,7 +233,7 @@ function createTile() {
 
     let tileContent = document.createElement("img");
     tileContent.className = "tileContent";
-    tileContent.src="static/assets/empty.svg";
+    tileContent.src="/static/assets/empty.svg";
     tileContent.width="100";
     tileContent.alt="empty";
     tileContent.draggable = false;
@@ -244,7 +244,7 @@ function createTile() {
 
 /*
     Combines a hit map from our opponent with our ship map to properly show icons from both sources
-    
+
     Returns a 100-long array that is this combination
 */
 function combineHitAndShipMap(hitMap, shipMap){
@@ -268,7 +268,7 @@ function combineHitAndShipMap(hitMap, shipMap){
     Send our initial ship map to the server, and override our current main ship map in this file with whatever that map is
 */
 function sendInitialShipMap(newShipMap){
-    
+
     // update our global shipMap var in lobby.js to be the new map
     mainShipMap = newShipMap;
 
@@ -338,7 +338,7 @@ function generateOpponentMap() {
 
 /**
  * Makes a guess using the passed index. Sends the guess to python, updates turn order, and deactivates tile
- * @param {BigInt} index 
+ * @param {BigInt} index
  */
 function guess(index) {
     // find the tile element

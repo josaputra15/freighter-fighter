@@ -1,12 +1,17 @@
 from random import random
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request
 from flask_socketio import SocketIO, close_room, emit, join_room, rooms, leave_room
 
 import json
 import game
+import os
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode="eventlet") # wrap socketio installation into new name - maybe makes a connection to our app too?
+
+if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
+    socketio = SocketIO(app)  # default async_mode for flask run
+else:
+    socketio = SocketIO(app, async_mode="eventlet")  # use eventlet for gunicorn
 
     # maybe use sessions - which requires a secret key
 
@@ -26,7 +31,7 @@ NUM_LOBBIES = 9
 lobbiesData = {}
 
 def createLobbies():
-    # Create the storage for each 
+    # Create the storage for each
     for i in range(NUM_LOBBIES):
         lobbiesData[i+1] = {}
         createLobby(i+1)
@@ -45,6 +50,10 @@ createLobbies()
 # Basic Routing
 #==============================
 
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("404.html")
+
 # serve our index.html page when you go to the root page
 @app.get("/")
 def index():
@@ -55,9 +64,17 @@ def rules():
     return render_template("rules.html")
 
 # serve our lobby.html page when you go to any other page. uses the passed lobby (second part of URL) as part of the template
-@app.get("/<lobby>")
-def lobby(lobby):
-    return render_template("lobby.html", lobbyName=lobby)
+@app.get("/lobby/<lobby>")
+def lobby(lobby: str):
+    try:
+        lobby_int = int(lobby)
+
+        if lobby_int <= 0 or lobby_int > NUM_LOBBIES:
+            raise ValueError
+
+        return render_template("lobby.html", lobbyName=lobby_int)
+    except ValueError:
+        return redirect("/")
 
 
 # ===============================
@@ -84,7 +101,7 @@ def handleConnect(auth):
 def handleDisconnect():
     print("received a disconnect")
     roomDetails = rooms()       # check what rooms the socket that sent the message is in
-    # we have to do this for loop stuff bc every socket is also part of its own room, 
+    # we have to do this for loop stuff bc every socket is also part of its own room,
         # and as far as i can tell, the order of this list isn't confirmed to stay the same all the time
         # so we can't just leave the first room in its list - we have to make sure its actually the key for our lobby
 
@@ -105,7 +122,7 @@ def handleDisconnect():
             # getCode returns false if the room doesn't exist, so we just check that they both exist
             # u1code = game.getRoomCode(roomName, 1)
             # u2code = game.getRoomCode(roomName, 2)
-            # if u1code or u2code: 
+            # if u1code or u2code:
             #     emit("closeRoom", to=u1code)
             #     emit("closeRoom", to=u2code)
 
@@ -173,7 +190,7 @@ def createGame(lobbyName):
     """
     emit('fullLobby', to=lobbyName, broadcast=True)
 
-    # when we start our game, we pass it the name of the lobby, 
+    # when we start our game, we pass it the name of the lobby,
     # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
     game.create_game(lobbyName, lobbiesData[lobbyName]["user1RoomCode"], lobbiesData[lobbyName]["user2RoomCode"])
 """
@@ -209,7 +226,7 @@ def handleGuess(lobbyName, id, coords):
     user1Code = game.getRoomCode(lobbyName, 1)
     user2Code = game.getRoomCode(lobbyName, 2)
 
-    # this naming is confusing. 
+    # this naming is confusing.
         # the first rerender is rendering your hitMap to your opponentMap element
         # the second rerender is rendering your opponent's hitMap to your selfMap, which is why it's called "ship"
         # which is why we can pass the same map to both of them
@@ -253,7 +270,7 @@ def player_ready(lobbyName):
         else:
             emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
             emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
-        
+
         # TODO: This is a janky way of sending messages, maybe clean it up?
         emit("all_players_ready", to=game.GAMES[lobbyName]["player1"].getUserCode())
         emit("all_players_ready", to=game.GAMES[lobbyName]["player2"].getUserCode())
@@ -285,4 +302,4 @@ def checkForVictory(lobbyName):
 
 # run the server when you run this file
 if (__name__ == '__main__'):
-    socketio.run(app)
+    socketio.run(app, port=8080)
