@@ -83,6 +83,7 @@ gcloud builds submit --tag gcr.io/freighter-fighter/freighter-fighter . --projec
 ```bash
 gcloud run services logs tail battleship-game --region us-central1
 ```
+**URL**: https://console.cloud.google.com/run/detail/us-central1/freighter-fighter/observability/logs?project=freighter-fighter
 
 
 ### Challenges Encountered
