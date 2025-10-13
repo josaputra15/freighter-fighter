@@ -27,3 +27,53 @@ h1 {
     margin-left: 30px;
     margin-right: 30px;
 }
+
+/* OAuth UI Styling */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-name {
+    color: #333;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.login-btn {
+    background-color: #4285f4;
+    color: white !important;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+    background-color: #3367d6;
+}
+
+.logout-btn {
+    background-color: #dc3545;
+    color: white !important;
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: #c82333;
+}
+
+.profile-pic {
+    border: 2px solid #ddd;
+}

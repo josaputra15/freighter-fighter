@@ -52,7 +52,6 @@ The deployment was accomplished through the following steps:
 - Set up project configuration (`mailswiper-backend-demo`)
 
 #### 2. **Docker Configuration**
-- Created `wsgi.py` entry point for production deployment
 - Updated `Dockerfile` with proper configuration for Cloud Run
 - Configured environment variables (`FLASK_ENV=production`, `PORT=8080`)
 - Added timeout settings for WebSocket connections
@@ -63,11 +62,19 @@ The deployment was accomplished through the following steps:
 gcloud builds submit --tag gcr.io/freighter-fighter/freighter-fighter . --project=freighter-fighter
 
 # Deploy to Cloud Run
-gcloud run deploy freighter-fighter --image gcr.io/freighter-fighter/freighter-fighter --region us-central1 --project=freighter-fighter
+
+  gcloud run deploy freighter-fighter \
+  --image gcr.io/freighter-fighter/freighter-fighter \
+  --region us-central1 \
+  --project freighter-fighter \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 8080
+
 ```
 
 #### 4. **Live Application**
-- **URL**: https://freighter-fighter-343247389048.us-central1.run.app
+- **URL**: https://freighter-fighter-222875992983.us-central1.run.app
 - **Status**: Successfully deployed and operational
 - **Features**: All multiplayer functionality working with WebSocket support
 
@@ -190,3 +197,14 @@ Fette, I., & Melnikov, A. (2011). RFC 6455: The WebSocket Protocol. Internet Eng
 Grinberg, M. (2023). Flask-SocketIO Documentation. https://flask-socketio.readthedocs.io/en/latest/
 Google Cloud (2023). Cloud Run Documentation: Deploying containerized services. https://cloud.google.com/run/docs/deploying
 Docker Inc. (2023). Dockerfile Reference: Best practices for writing Dockerfiles. https://docs.docker.com/develop/dev-best-practices/dockerfile_best-practices/
+
+
+```bash
+  gcloud run deploy freighter-fighter \
+  --image gcr.io/freighter-fighter/freighter-fighter \
+  --region us-central1 \
+  --project freighter-fighter \
+  --platform managed \
+  --allow-unauthenticated \
+  --port 8080
+```

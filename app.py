@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from random import random
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 from flask_socketio import SocketIO, close_room, emit, join_room, rooms, leave_room
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Integer, String
@@ -14,8 +14,25 @@ from functools import wraps
 from datetime import datetime
 import game
 
+# OAuth imports
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+import requests as req
+
 app = Flask(__name__)
 socketio = SocketIO(app) # wrap socketio installation into new name - maybe makes a connection to our app too?
+
+# Configure session secret key for OAuth
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
+
+# OAuth Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://freighter-fighter-222875992983.us-central1.run.app/callback')
+
+# Configure OAuth for HTTPS
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'  # Require HTTPS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -224,10 +241,162 @@ def reset_db():
 # Basic Routing
 #==============================
 
+# OAuth Helper Functions
+def create_flow():
+    """Create Google OAuth flow"""
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [GOOGLE_REDIRECT_URI]
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile", "openid"]
+    )
+    flow.redirect_uri = GOOGLE_REDIRECT_URI
+    return flow
+
+def is_authenticated():
+    """Check if user is authenticated"""
+    return 'user' in session
+
+def get_user_info():
+    """Get current user info"""
+    return session.get('user', {})
+
+def login_required(f):
+    """require authentication for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_authenticated():
+            logger.info(f"Unauthenticated access attempt to {request.endpoint} | IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# OAuth Routes
+@app.route('/login')
+def login():
+    """initiate Google OAuth login"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        logger.error("Google OAuth credentials not configured")
+        return render_template("login.html", error="OAuth not configured")
+    
+    # If user is already authenticated, redirect to home
+    if is_authenticated():
+        return redirect(url_for('index'))
+    
+    # Check if this is a direct OAuth callback initiation
+    if request.args.get('initiate') == 'oauth':
+        flow = create_flow()
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true'
+        )
+        
+        # Store state in session for security
+        session['oauth_state'] = state
+        
+        logger.info(f"OAuth login initiated for IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+        return redirect(authorization_url)
+    
+    # Show login page
+    return render_template("login.html")
+
+@app.route('/auth/google')
+def auth_google():
+    """Initiate Google OAuth login"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        logger.error("Google OAuth credentials not configured")
+        return jsonify({'error': 'OAuth not configured'}), 500
+    
+    flow = create_flow()
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true'
+    )
+    
+    # Store state in session for security
+    session['oauth_state'] = state
+    
+    logger.info(f"OAuth login initiated for IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+    return redirect(authorization_url)
+
+@app.route('/callback')
+def callback():
+    """Handle Google OAuth callback"""
+    try:
+        flow = create_flow()
+        
+        # Verify state parameter
+        if request.args.get('state') != session.get('oauth_state'):
+            logger.warning("OAuth state mismatch - potential CSRF attack")
+            return redirect(url_for('index'))
+        
+        # Exchange authorization code for tokens
+        # Handle HTTPS requirement for Cloud Run
+        authorization_response = request.url.replace('http://', 'https://')
+        
+        # Allow scope variations
+        os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
+        flow.fetch_token(authorization_response=authorization_response)
+        
+        # Get user info
+        credentials = flow.credentials
+        user_info = id_token.verify_oauth2_token(
+            credentials.id_token, 
+            requests.Request(), 
+            GOOGLE_CLIENT_ID
+        )
+        
+        # Store user info in session
+        session['user'] = {
+            'id': user_info['sub'],
+            'email': user_info['email'],
+            'name': user_info['name'],
+            'picture': user_info.get('picture', ''),
+            'verified_email': user_info.get('email_verified', False)
+        }
+        
+        logger.info(f"User authenticated: {user_info['email']} | IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+        
+        return redirect(url_for('index'))
+        
+    except Exception as e:
+        logger.error(f"OAuth callback error: {str(e)}")
+        logger.error(f"Request URL: {request.url}")
+        logger.error(f"Request headers: {dict(request.headers)}")
+        return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    """Logout user"""
+    user_email = session.get('user', {}).get('email', 'unknown')
+    logger.info(f"User logged out: {user_email} | IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+    
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/user-info')
+def user_info():
+    """Get current user info"""
+    if not is_authenticated():
+        return jsonify({'authenticated': False})
+    
+    return jsonify({
+        'authenticated': True,
+        'user': get_user_info()
+    })
+
 # serve our index.html page when you go to the root page
 @app.get("/")
+@login_required
 def index():
-    return render_template("index.html", numLobbies = NUM_LOBBIES)
+    user_info = get_user_info() if is_authenticated() else None
+    return render_template("index.html", numLobbies = NUM_LOBBIES, user=user_info)
 
 @app.get("/rules")
 def rules():
@@ -235,10 +404,13 @@ def rules():
 
 # serve our lobby.html page when you go to any other page. uses the passed lobby (second part of URL) as part of the template
 @app.get("/<lobby>")
+@login_required
 def lobby(lobby):
-    return render_template("lobby.html", lobbyName=lobby)
+    user_info = get_user_info() if is_authenticated() else None
+    return render_template("lobby.html", lobbyName=lobby, user=user_info)
 
 @app.get("/stats")
+@login_required
 def stats():
     return render_template("stats.html")
 
@@ -276,17 +448,25 @@ def handleExists(lobbyNumber):
 # socket for managing response to clients connecting to the socket
 @socketio.on('connect')
 def handleConnect(auth):
+    # Check if user is authenticated
+    if not is_authenticated():
+        logger.warning(f"Unauthenticated SocketIO connection attempt | IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+        return False  # Reject the connection
+    
     # logger.info('Client connected')
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     session_id = request.sid
+    user_info = get_user_info()
     
-    logger.info(f"Client connected | IP: {client_ip} | Session: {session_id}")
+    logger.info(f"Authenticated user connected | User: {user_info.get('email', 'unknown')} | IP: {client_ip} | Session: {session_id}")
     
     # Log connection per user
     game_logger.log_player_action('system', 'connection', 'client_connected', {
         'ip': client_ip,
         'session_id': session_id,
-        'user_agent': request.headers.get('User-Agent', 'unknown')
+        'user_agent': request.headers.get('User-Agent', 'unknown'),
+        'authenticated': bool(user_info),
+        'user_email': user_info.get('email') if user_info else None
     })
 
 
@@ -360,11 +540,18 @@ def handleDisconnect():
 # manage connections to a specific lobby
 @socketio.on('join')
 def handleJoin(lobby):
+    # Check if user is authenticated
+    if not is_authenticated():
+        logger.warning(f"Unauthenticated join attempt | Lobby: {lobby} | IP: {request.environ.get('REMOTE_ADDR', 'unknown')}")
+        emit('join', (0, 0))  # Send failure response
+        return
+    
     # logger.info(f"Client attempting to join lobby {lobby}")
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     session_id = request.sid
+    user_info = get_user_info()
     
-    logger.info(f"Join attempt | Lobby: {lobby} | IP: {client_ip} | Session: {session_id}")
+    logger.info(f"Join attempt | Lobby: {lobby} | User: {user_info.get('email', 'unknown')} | IP: {client_ip} | Session: {session_id}")
     
     # do another check to see if the lobby is full already
     if lobbiesData[lobby]["usersConnected"] <  2:
@@ -393,7 +580,8 @@ def handleJoin(lobby):
         game_logger.log_player_action(lobby, id, 'join_lobby', {
             'session_id': session_id,
             'ip': client_ip,
-            'users_connected': lobbiesData[lobby]['usersConnected']
+            'users_connected': lobbiesData[lobby]['usersConnected'],
+            'user_email': user_info.get('email') if user_info else None
         })
         
         # if we're now full, send a fullLobby message to both clients in the lobby
