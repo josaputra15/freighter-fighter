@@ -60,22 +60,14 @@ The deployment was accomplished through the following steps:
 #### 3. **Build and Deploy**
 ```bash
 # Build and push Docker image using Cloud Build
-gcloud builds submit --tag gcr.io/mailswiper-backend-demo/battleship-game .
+gcloud builds submit --tag gcr.io/freighter-fighter/freighter-fighter . --project=freighter-fighter
 
 # Deploy to Cloud Run
-gcloud run deploy battleship-game \
-  --image gcr.io/mailswiper-backend-demo/battleship-game \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --port 8080 \
-  --memory 1Gi \
-  --cpu 1 \
-  --timeout 300
+gcloud run deploy freighter-fighter --image gcr.io/freighter-fighter/freighter-fighter --region us-central1 --project=freighter-fighter
 ```
 
 #### 4. **Live Application**
-- **URL**: https://battleship-game-qalpnpjyha-uc.a.run.app
+- **URL**: https://freighter-fighter-343247389048.us-central1.run.app
 - **Status**: Successfully deployed and operational
 - **Features**: All multiplayer functionality working with WebSocket support
 
@@ -84,15 +76,7 @@ gcloud run deploy battleship-game \
 ```bash
 gcloud run services logs tail battleship-game --region us-central1
 ```
-#### 5. **Mapping Region/Domain**
-```bash
-gcloud run services list --region us-central1
-gcloud beta run domain-mappings create \
-  --service battleship-game \
-  --domain battleship.yourdomain.com \
-  --region us-central1
 
-```
 
 ### Challenges Encountered
 

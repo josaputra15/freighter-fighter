@@ -8,6 +8,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 import json
 import logging
+import os
+import traceback
+from functools import wraps
+from datetime import datetime
 import game
 
 app = Flask(__name__)
@@ -16,6 +20,66 @@ socketio = SocketIO(app) # wrap socketio installation into new name - maybe make
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class GameEventLogger:
+    """Better logging for game events"""
+    def __init__(self, logger):
+        self.logger = logger
+    
+    def log_game_start(self, lobby_name, player1_id, player2_id):
+        """game starts"""
+        event = {
+            'event_type': 'game_start',
+            'lobby': lobby_name,
+            'players': [player1_id, player2_id],
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        self.logger.info(f"GAME_EVENT: {json.dumps(event)}")
+    
+    def log_player_action(self, lobby_name, player_id, action, details=None):
+        """what player does"""
+        event = {
+            'event_type': 'player_action',
+            'lobby': lobby_name,
+            'player_id': player_id,
+            'action': action,
+            'details': details,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        self.logger.info(f"PLAYER_ACTION: {json.dumps(event)}")
+    
+    def log_game_end(self, lobby_name, winner_id, game_duration):
+        """game ends"""
+        event = {
+            'event_type': 'game_end',
+            'lobby': lobby_name,
+            'winner': winner_id,
+            'duration_seconds': game_duration,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        self.logger.info(f"GAME_EVENT: {json.dumps(event)}")
+
+def log_exceptions(func):
+    """log exceptions with full context"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Exception in {func.__name__}: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+           
+            error_logger = logging.getLogger('error')
+            error_logger.error(f"Function: {func.__name__} | Args: {args} | Kwargs: {kwargs}")
+            error_logger.error(f"Exception: {str(e)}")
+            error_logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            raise
+    return wrapper
+
+game_logger = GameEventLogger(logger)
 
     # maybe use sessions - which requires a secret key
 
@@ -212,26 +276,54 @@ def handleExists(lobbyNumber):
 # socket for managing response to clients connecting to the socket
 @socketio.on('connect')
 def handleConnect(auth):
-    logger.info('Client connected')
+    # logger.info('Client connected')
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    session_id = request.sid
+    
+    logger.info(f"Client connected | IP: {client_ip} | Session: {session_id}")
+    
+    # Log connection per user
+    game_logger.log_player_action('system', 'connection', 'client_connected', {
+        'ip': client_ip,
+        'session_id': session_id,
+        'user_agent': request.headers.get('User-Agent', 'unknown')
+    })
 
 
 # socket for managing response to clients leaving the socket. Returns false if it didn't close a lobby
 @socketio.on('disconnect')
 def handleDisconnect():
-    logger.info("Client disconnected")
-    roomDetails = rooms()       # check what rooms the socket that sent the message is in
-    # we have to do this for loop stuff bc every socket is also part of its own room, 
-        # and as far as i can tell, the order of this list isn't confirmed to stay the same all the time
-        # so we can't just leave the first room in its list - we have to make sure its actually the key for our lobby
-
+    # logger.info("Client disconnected")
+    # roomDetails = rooms()       # check what rooms the socket that sent the message is in
+    # # we have to do this for loop stuff bc every socket is also part of its own room, 
+    #     # and as far as i can tell, the order of this list isn't confirmed to stay the same all the time
+    #     # so we can't just leave the first room in its list - we have to make sure its actually the key for our lobby
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    session_id = request.sid
+    
+    logger.info(f"Client disconnected | IP: {client_ip} | Session: {session_id}")
+    roomDetails = rooms()
+    disconnected_from_lobbies = []
+    
     if len(roomDetails) == 1:
-        print("disconnected from index")
+        # print("disconnected from index")
+        logger.info("Client disconnected from index page")
         return False
 
     for roomName in roomDetails:
-        print("checking a room name for name:", roomName)
+        # print("checking a room name for name:", roomName)
+        logger.debug(f"Checking room: {roomName}")
         if roomName in lobbiesData.keys():  # for each room it's in (that isn't its personal room) remove it from that room and update the server's count
-            print("started to close a room: ", roomName)
+            # print("started to close a room: ", roomName)
+            disconnected_from_lobbies.append(roomName)
+            logger.warning(f"Player disconnected from lobby {roomName}")
+            
+            # Log the disconnect event
+            game_logger.log_player_action(roomName, 'unknown', 'disconnect', {
+                'session_id': session_id,
+                'ip': client_ip
+            })
+            
             # kick out both players
             emit("closeRoom", to=roomName, broadcast=True)
 
@@ -253,6 +345,10 @@ def handleDisconnect():
 
             # delete game from GAMES
             game.deleteGame(roomName)
+    
+    if disconnected_from_lobbies:
+        logger.warning(f"Client disconnected from lobbies: {disconnected_from_lobbies}")
+    
     return True
 
 
@@ -264,7 +360,12 @@ def handleDisconnect():
 # manage connections to a specific lobby
 @socketio.on('join')
 def handleJoin(lobby):
-    logger.info(f"Client attempting to join lobby {lobby}")
+    # logger.info(f"Client attempting to join lobby {lobby}")
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    session_id = request.sid
+    
+    logger.info(f"Join attempt | Lobby: {lobby} | IP: {client_ip} | Session: {session_id}")
+    
     # do another check to see if the lobby is full already
     if lobbiesData[lobby]["usersConnected"] <  2:
         clientRoomCode = rooms()[0]
@@ -286,11 +387,20 @@ def handleJoin(lobby):
         # send a join success back to the request
         emit('join', (1, id))
 
-        logger.info(f"Lobby {lobby} now has {lobbiesData[lobby]['usersConnected']} users connected")
+        # logger.info(f"Lobby {lobby} now has {lobbiesData[lobby]['usersConnected']} users connected")
+        logger.info(f"Successful join | Lobby: {lobby} | User ID: {id} | Total users: {lobbiesData[lobby]['usersConnected']}")
+        
+        game_logger.log_player_action(lobby, id, 'join_lobby', {
+            'session_id': session_id,
+            'ip': client_ip,
+            'users_connected': lobbiesData[lobby]['usersConnected']
+        })
+        
         # if we're now full, send a fullLobby message to both clients in the lobby
         if lobbiesData[lobby]["usersConnected"] == 2:
             createGame(lobby)
     else:
+        logger.warning(f"Failed join attempt | Lobby: {lobby} | IP: {client_ip} | Reason: lobby_full")
         # emit a failed join request with no ID and no lobby.
         emit('join', (0, 0))
 
@@ -310,6 +420,10 @@ def createGame(lobbyName):
     emit('fullLobby', to=lobbyName, broadcast=True)
 
     db_manager.increment("gamesStarted")
+    
+    # Log game start event
+    game_logger.log_game_start(lobbyName, 1, 2)
+    logger.info(f"Game started in lobby {lobbyName}")
 
     # when we start our game, we pass it the name of the lobby, 
     # we also pass the room codes for both players, so that it can send messages to them specifically even when its not a callback
@@ -318,7 +432,13 @@ def createGame(lobbyName):
 Responds to each player submitting their map. Sets up the game's internal representation of their map
 """
 @socketio.on('send_initial_maps')
+@log_exceptions
 def handleInitialMaps(lobbyName, id, ship_map):
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    session_id = request.sid
+    
+    logger.info(f"Received initial ship map | Lobby: {lobbyName} | Player: {id} | IP: {client_ip}")
+    
     # call game.py's copy of this command
     success = game.handleInitialMaps(lobbyName, id, ship_map)
 
@@ -328,6 +448,13 @@ def handleInitialMaps(lobbyName, id, ship_map):
         # map = json.dumps(game.getHitMap(lobbyName, id))
         # emit('rerender', map, to=lobbyName)
         logger.info("Successfully handled initial ship map")
+        
+        # Log ship placement event
+        game_logger.log_player_action(lobbyName, id, 'ship_placement', {
+            'session_id': session_id,
+            'ip': client_ip,
+            'ships_placed': len([x for x in ship_map if x != 0])
+        })
     else:
         logger.error("Failed to handle initial ship map")
     # TODO: Tell someone that it's their move
@@ -337,46 +464,67 @@ Responds to guesses. It updates the internal logic using game.handleGuess, and t
 ship/hit maps.
 """
 @socketio.on("guess")
+@log_exceptions
 def handleGuess(lobbyName, id, coords):
-    db_manager.increment("guessesMade")
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    session_id = request.sid
+    
+    logger.info(f"Processing guess | Lobby: {lobbyName} | Player: {id} | Coords: {coords} | IP: {client_ip}")
+    
+    try:
+        db_manager.increment("guessesMade")
 
-    success = game.handleGuess(lobbyName, id, coords)
-    if success:
-        db_manager.increment("guessesHit")
-    else:
-        db_manager.increment("guessesMissed")
+        success = game.handleGuess(lobbyName, id, coords)
+        if success:
+            db_manager.increment("guessesHit")
+        else:
+            db_manager.increment("guessesMissed")
 
-    game.checkForDestroyedShips(lobbyName)
+        game.checkForDestroyedShips(lobbyName)
 
-    # grab the room ID's for both players, so we can send them a message alone
-    user1Code = game.getRoomCode(lobbyName, 1)
-    user2Code = game.getRoomCode(lobbyName, 2)
+        # grab the room ID's for both players, so we can send them a message alone
+        user1Code = game.getRoomCode(lobbyName, 1)
+        user2Code = game.getRoomCode(lobbyName, 2)
 
-    # this naming is confusing. 
-        # the first rerender is rendering your hitMap to your opponentMap element
-        # the second rerender is rendering your opponent's hitMap to your selfMap, which is why it's called "ship"
-        # which is why we can pass the same map to both of them
+        # this naming is confusing. 
+            # the first rerender is rendering your hitMap to your opponentMap element
+            # the second rerender is rendering your opponent's hitMap to your selfMap, which is why it's called "ship"
+            # which is why we can pass the same map to both of them
 
-    if id == 1:
-        map = json.dumps(game.getHitMap(lobbyName, 1))
-        emit("rerender", ("hit", map), to=user1Code)
-        emit("rerender", ("ship", map), to=user2Code)
-        # switch turns to user 2
-        emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
-        emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
+        if id == 1:
+            map = json.dumps(game.getHitMap(lobbyName, 1))
+            emit("rerender", ("hit", map), to=user1Code)
+            emit("rerender", ("ship", map), to=user2Code)
+            # switch turns to user 2
+            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player1"].getUserCode())
+            emit("turnUpdate", 2, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
-    elif id == 2:
-        map = json.dumps(game.getHitMap(lobbyName, 2))
-        emit("rerender", ("hit", map), to=user2Code)
-        emit("rerender", ("ship", map), to=user1Code)
-        # switch turns to user 1
-        emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player1"].getUserCode())
-        emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player2"].getUserCode())
+        elif id == 2:
+            map = json.dumps(game.getHitMap(lobbyName, 2))
+            emit("rerender", ("hit", map), to=user2Code)
+            emit("rerender", ("ship", map), to=user1Code)
+            # switch turns to user 1
+            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player1"].getUserCode())
+            emit("turnUpdate", 1, to=game.GAMES[lobbyName]["player2"].getUserCode())
 
-    else:
-        raise Exception("received an id that was neither 1 or 2")
+        else:
+            raise Exception("received an id that was neither 1 or 2")
 
-    checkForVictory(lobbyName)
+        # Log successful
+        game_logger.log_player_action(lobbyName, id, 'make_guess', {
+            'coordinates': coords,
+            'hit': success,
+            'session_id': session_id,
+            'ip': client_ip
+        })
+        
+        logger.info(f"Guess processed successfully | Lobby: {lobbyName} | Player: {id} | Hit: {success}")
+
+        checkForVictory(lobbyName)
+        
+    except Exception as e:
+        logger.error(f"Error processing guess | Lobby: {lobbyName} | Player: {id} | Error: {str(e)}")
+        raise
 
 
 """
@@ -418,6 +566,10 @@ def checkForVictory(lobbyName):
     """
     victory = game.checkForVictory(lobbyName)
     if victory:
+        # Log game end event
+        game_logger.log_game_end(lobbyName, victory, 0)  # Duration not tracked yet
+        logger.info(f"Game ended in lobby {lobbyName} | Winner: Player {victory}")
+        
         # send a victory message with the winner's id as the content
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player1"].getUserCode())
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player2"].getUserCode())
@@ -428,8 +580,20 @@ def checkForVictory(lobbyName):
 #   Weird stuff to make this work in a way we never use
 # ===========================
 
-# run the server when you run this file
-if (__name__ == '__main__'):
-    port = int(os.environ.get("PORT", 8000))   # Railway provides PORT
-    socketio.run(app, host="0.0.0.0", port=port)
-    # socketio.run(app)
+if __name__ == '__main__':
+    # Get configuration from environment variables
+    port = int(os.environ.get("PORT", 5000))  # Default to Flask's default port
+    host = os.environ.get("HOST", "0.0.0.0")  # Default to all interfaces
+    debug = os.environ.get("DEBUG", "False").lower() == "true"
+    
+    logger.info(f"Starting Freighter Fighter server on {host}:{port}")
+    logger.info(f"Debug mode: {debug}")
+    
+    # Run the application
+    socketio.run(
+        app, 
+        host=host, 
+        port=port, 
+        debug=debug,
+        allow_unsafe_werkzeug=True  # For development only
+    )
