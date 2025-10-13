@@ -579,6 +579,11 @@ def checkForVictory(lobbyName):
 # ===========================
 #   Weird stuff to make this work in a way we never use
 # ===========================
+# # run the server when you run this file
+# if (__name__ == '__main__'):
+#     port = int(os.environ.get("PORT", 8000))   # Railway provides PORT
+#     socketio.run(app, host="0.0.0.0", port=port)
+#     # socketio.run(app)
 
 if __name__ == '__main__':
     # Get configuration from environment variables
