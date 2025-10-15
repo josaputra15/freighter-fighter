@@ -1,19 +1,17 @@
 from random import random
-from flask import Flask, redirect, render_template, request
 from flask_socketio import SocketIO, close_room, emit, join_room, rooms, leave_room
 
 import json
-import game
+import freighter.game as game
+
 import os
 
-app = Flask(__name__)
-
 if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
-    socketio = SocketIO(app)  # default async_mode for flask run
+    socketio = SocketIO()  # default async_mode for flask run
 else:
-    socketio = SocketIO(app, async_mode="eventlet")  # use eventlet for gunicorn
+    socketio = SocketIO(async_mode="eventlet")  # use eventlet for gunicorn
 
-    # maybe use sessions - which requires a secret key
+# maybe use sessions - which requires a secret key
 
 # TODO: make an error handler for some of the big errors - 503, 404
 
@@ -45,36 +43,6 @@ def createLobby(lobbyName):
 
 createLobbies()
 
-
-#==============================
-# Basic Routing
-#==============================
-
-@app.errorhandler(404)
-def not_found(e):
-    return render_template("404.html")
-
-# serve our index.html page when you go to the root page
-@app.get("/")
-def index():
-    return render_template("index.html", numLobbies = NUM_LOBBIES)
-
-@app.get("/rules")
-def rules():
-    return render_template("rules.html")
-
-# serve our lobby.html page when you go to any other page. uses the passed lobby (second part of URL) as part of the template
-@app.get("/lobby/<lobby>")
-def lobby(lobby: str):
-    try:
-        lobby_int = int(lobby)
-
-        if lobby_int <= 0 or lobby_int > NUM_LOBBIES:
-            raise ValueError
-
-        return render_template("lobby.html", lobbyName=lobby_int)
-    except ValueError:
-        return redirect("/")
 
 
 # ===============================
@@ -295,11 +263,3 @@ def checkForVictory(lobbyName):
         # send a victory message with the winner's id as the content
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player1"].getUserCode())
         socketio.emit("victory", victory, to=game.GAMES[lobbyName]["player2"].getUserCode())
-
-# ===========================
-#   Weird stuff to make this work in a way we never use
-# ===========================
-
-# run the server when you run this file
-if (__name__ == '__main__'):
-    socketio.run(app, port=8080)
